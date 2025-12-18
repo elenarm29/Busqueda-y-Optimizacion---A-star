@@ -271,13 +271,13 @@ else:
 
             # 2. Dibujar el camino óptimo (capa superior)
             if path_edges:
-                nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='lightblue', width=5.0,
+                nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='lightblue', width=3.0,
                                        arrows=True, arrowstyle='-|>', arrowsize=18,
                                        connectionstyle='arc3,rad=0.2', ax=ax,
                                        min_source_margin=15, min_target_margin=15)
 
             # 3. Dibujar nodos (Azul si están en el camino, blanco si no)
-            node_colors = ['#1f77b4' if n in path_nodes else 'white' for n in G.nodes()]
+            node_colors = ['#90d5ff' if n in path_nodes else 'white' for n in G.nodes()]
             nx.draw_networkx_nodes(G, pos_fixed, node_size=800, node_color=node_colors, 
                                    edgecolors="black", linewidths=2, ax=ax)
 
