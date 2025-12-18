@@ -4,7 +4,7 @@ import heapq
 import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.lines import Line2Df
+from matplotlib.lines import Line2D
 
 ### VAMOS A AÑADIR PRIMERO UNA PORTADA QUE PONGA LOS NOMBRES Y TODO  ###
 
