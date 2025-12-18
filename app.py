@@ -217,7 +217,7 @@ else:
             width_fig = max(15, len(last_x_at_level) * 4) # Se ensancha si hay muchos niveles
             fig, ax = plt.subplots(figsize=(width_fig, 10))
             
-            nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=15, edge_color="gray", ax=ax, alpha=0.5)
+            nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=15, edge_color="darkgray", ax=ax, alpha=0.5)
             
             for n_id, (x, y) in pos.items():
                 ax.text(x, y, labels[n_id], ha='center', va='center', fontsize=8,
