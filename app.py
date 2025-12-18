@@ -104,7 +104,7 @@ else:
         heapq.heappush(open_heap, (start_node["f"], counter, start_node))
         counter += 1
 
-        expansions = []
+        expansions = [start_node]
         solution_node = None
 
         while open_heap:
