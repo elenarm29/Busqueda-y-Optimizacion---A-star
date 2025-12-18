@@ -104,6 +104,7 @@ else:
 
         expansions = []
         solution_node = None
+        iter_counter = 0  # inicializar antes del while
 
         while open_heap:
             f_current, _, current = heapq.heappop(open_heap)
@@ -113,10 +114,16 @@ else:
 
             closed_set.add(current["state"])
             expansions.append(current)
+            
+            if current["state"] not in closed_set:
+                current["iteration"] = iter_counter  # guardar número
+                iter_counter += 1
+                expansions.append(current)    
 
             if current["state"] == goal:
                 solution_node = current
                 break
+
 
             # EXPANDIR TODOS LOS HIJOS del nodo actual
             children_nodes = []
@@ -155,7 +162,7 @@ else:
             node_id = f"{node['state']}_{i}"
             id_map[id(node)] = node_id
             G_tree.add_node(node_id)
-            labels[node_id] = f"{node['state']} ({i})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
+            labels[node_id] = f"{node['state']} ({node['iteration']})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
             colors[node_id] = "lightgray"
 
         # Aristas padre -> hijo
