@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from collections import defaultdict
 
+st.set_page_config(layout="wide")
+
 
 # -------------------------
 # Datos de portada
