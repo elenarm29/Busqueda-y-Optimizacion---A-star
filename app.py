@@ -195,7 +195,7 @@ else:
 
         # Dibujar con curvas y flechas
         fig, ax = plt.subplots(figsize=(18,10))
-        nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=10, connectionstyle='arc3,rad=0.2', ax=ax)
+        nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=10, ax=ax)
         for n, (x, y) in pos.items():
             ax.text(x, y, labels[n], ha='center', va='center', fontsize=10,
                     bbox=dict(boxstyle="round,pad=0.4", facecolor=colors[n], edgecolor="black"))
