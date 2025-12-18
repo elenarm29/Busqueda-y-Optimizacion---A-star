@@ -86,10 +86,11 @@ else:
     # --------------------------
     def a_star(graph, start, goal, heuristic_fn):
         """
-        A* clásico:
-        - Siempre expandimos el nodo de menor f en la frontera (OPEN).
-        - Todos los hijos se agregan al heap.
-        - Guardamos todas las expansiones para dibujar el árbol.
+        A* clásico completo:
+        - Siempre expandimos el nodo de menor f.
+        - Todos los hijos se agregan al OPEN.
+        - Se evita expandir nodos cerrados (closed_set).
+        - Guardamos todas las expansiones para visualización.
         """
         open_heap = []
         closed_set = set()
@@ -110,11 +111,14 @@ else:
         solution_node = None
     
         while open_heap:
+            # Sacamos el nodo con menor f
             f_current, _, current = heapq.heappop(open_heap)
     
-            # Evitar expandir un nodo ya cerrado
+            # Si ya está cerrado, lo saltamos
             if current["state"] in closed_set:
                 continue
+    
+            # Marcamos como cerrado
             closed_set.add(current["state"])
     
             # Guardamos la expansión
@@ -125,7 +129,7 @@ else:
                 solution_node = current
                 break
     
-            # Expandir todos los hijos
+            # EXPANDIR TODOS LOS HIJOS
             for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
                 h_new = heuristic_fn(neighbor)
@@ -139,10 +143,12 @@ else:
                     "parent": current
                 }
     
+                # Todos los hijos van al OPEN
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
     
         return solution_node, expansions
+    
 
     
 
