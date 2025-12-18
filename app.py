@@ -25,10 +25,12 @@ if not st.session_state.start_app:
     st.subheader(actividad)
     st.write(master)
     st.write("Autores: " + ", ".join(autores))
-    
-    if st.button("Continuar al algoritmo"):
-        st.session_state['start_app'] = True
-        st.experimental_rerun()
+
+    # Usamos on_click para actualizar el estado y hacer rerun
+    st.button(
+        "Continuar al algoritmo",
+        on_click=lambda: st.session_state.update({'start_app': True})
+    )
 else:
     st.title("Algoritmo A*")
     st.write("Selecciona origen, destino y heurística")
