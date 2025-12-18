@@ -133,6 +133,7 @@ else:
             #     heapq.heappush(open_heap, (child["f"], counter, child))
             #     counter += 1
             # Expandir hijos
+            # Solo agregamos hijos al log, el padre ya está incluido
             children_nodes = []
             for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
@@ -147,11 +148,11 @@ else:
                 }
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
-                # Guardamos en el árbol inmediatamente
                 children_nodes.append(child)
             
-            # Añadir todos los hijos generados al log de expansiones
+            # Añadir hijos al log
             expansions.extend(children_nodes)
+
                 
 
         return solution_node, expansions
