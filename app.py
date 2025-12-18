@@ -86,13 +86,15 @@ else:
     # --------------------------
     def a_star(graph, start, goal, heuristic_fn):
         """
-        A* simple para visualización de árbol de expansión.
-        Permite nodos repetidos y se detiene solo cuando
-        el objetivo es el nodo con f mínima en OPEN.
+        A* clásico:
+        - Siempre expandimos el nodo de menor f en la frontera (OPEN).
+        - Todos los hijos se agregan al heap.
+        - Guardamos todas las expansiones para dibujar el árbol.
         """
         open_heap = []
+        closed_set = set()
         counter = 0
-
+    
         start_node = {
             "state": start,
             "g": 0,
@@ -100,45 +102,35 @@ else:
             "f": heuristic_fn(start),
             "parent": None
         }
-
+    
         heapq.heappush(open_heap, (start_node["f"], counter, start_node))
         counter += 1
-
-        expansions = [start_node]
+    
+        expansions = []
         solution_node = None
-
+    
         while open_heap:
             f_current, _, current = heapq.heappop(open_heap)
-
+    
+            # Evitar expandir un nodo ya cerrado
+            if current["state"] in closed_set:
+                continue
+            closed_set.add(current["state"])
+    
             # Guardamos la expansión
             expansions.append(current)
-
-            # Condición de parada correcta
+    
+            # Condición de parada
             if current["state"] == goal:
-                if not open_heap or f_current <= open_heap[0][0]:
-                    solution_node = current
-                    break
-
-            # # Expandir hijos
-            # for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
-            #     g_new = current["g"] + attrs["km"] * attrs["cost_state"]
-            #     h_new = heuristic_fn(neighbor)
-            #     child = {
-            #         "state": neighbor,
-            #         "g": g_new,
-            #         "h": h_new,
-            #         "f": g_new + h_new,
-            #         "parent": current
-            #     }
-            #     heapq.heappush(open_heap, (child["f"], counter, child))
-            #     counter += 1
-            # Expandir hijos
-            # Solo agregamos hijos al log, el padre ya está incluido
-            children_nodes = []
+                solution_node = current
+                break
+    
+            # Expandir todos los hijos
             for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
                 h_new = heuristic_fn(neighbor)
                 f_new = g_new + h_new
+    
                 child = {
                     "state": neighbor,
                     "g": g_new,
@@ -146,16 +138,13 @@ else:
                     "f": f_new,
                     "parent": current
                 }
+    
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
-                children_nodes.append(child)
-            
-            # Añadir hijos al log
-            expansions.extend(children_nodes)
-
-                
-
+    
         return solution_node, expansions
+
+    
 
     # --------------------------
     # Dibujar árbol de expansión
