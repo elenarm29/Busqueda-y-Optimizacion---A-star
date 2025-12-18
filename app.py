@@ -119,19 +119,40 @@ else:
                     solution_node = current
                     break
 
+            # # Expandir hijos
+            # for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
+            #     g_new = current["g"] + attrs["km"] * attrs["cost_state"]
+            #     h_new = heuristic_fn(neighbor)
+            #     child = {
+            #         "state": neighbor,
+            #         "g": g_new,
+            #         "h": h_new,
+            #         "f": g_new + h_new,
+            #         "parent": current
+            #     }
+            #     heapq.heappush(open_heap, (child["f"], counter, child))
+            #     counter += 1
             # Expandir hijos
+            children_nodes = []
             for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
                 h_new = heuristic_fn(neighbor)
+                f_new = g_new + h_new
                 child = {
                     "state": neighbor,
                     "g": g_new,
                     "h": h_new,
-                    "f": g_new + h_new,
+                    "f": f_new,
                     "parent": current
                 }
-                heapq.heappush(open_heap, (child["f"], counter, child))
+                heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
+                # Guardamos en el árbol inmediatamente
+                children_nodes.append(child)
+            
+            # Añadir todos los hijos generados al log de expansiones
+            expansions.extend(children_nodes)
+                
 
         return solution_node, expansions
 
