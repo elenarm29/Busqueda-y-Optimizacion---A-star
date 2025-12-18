@@ -158,16 +158,17 @@ else:
     def draw_decision_tree(solution_path, expansion_log, g_vals, h_vals, f_vals):
         import networkx as nx
         import matplotlib.pyplot as plt
+        from collections import defaultdict
     
         G_tree = nx.DiGraph()
         node_labels = {}
         node_colors = {}
-        pos = {}
-    
-        # Mapeo: (estado, step) -> node_id
-        exp_nodes = {}
     
         # --- 1. Crear nodos por expansión ---
+        exp_nodes = {}   # (estado, step) -> node_id
+        children = defaultdict(list)
+        roots = []
+    
         for step, current, g, h, f, neighbors, open_nodes, closed_nodes in expansion_log:
             node_id = f"{current}_{step}"
             exp_nodes[(current, step)] = node_id
@@ -180,25 +181,43 @@ else:
                 f"f={f:.0f}"
             )
     
-            if solution_path and current in solution_path:
-                node_colors[node_id] = "lightgreen"
-            else:
-                node_colors[node_id] = "lightgray"
+            node_colors[node_id] = "lightgreen" if solution_path and current in solution_path else "lightgray"
     
-        # --- 2. Crear aristas PADRE → HIJOS ---
-        for i, (step, current, g, h, f, neighbors, open_nodes, closed_nodes) in enumerate(expansion_log):
+        # --- 2. Crear relaciones padre → hijos ---
+        for i, (step, current, g, h, f, neighbors, *_ ) in enumerate(expansion_log):
             parent_id = exp_nodes[(current, step)]
     
+            has_parent = False
             for neigh in neighbors:
-                # buscar la PRIMERA expansión futura de ese vecino
                 for s2, cur2, *_ in expansion_log[i+1:]:
                     if cur2 == neigh:
                         child_id = exp_nodes[(cur2, s2)]
                         G_tree.add_edge(parent_id, child_id)
+                        children[parent_id].append(child_id)
+                        has_parent = True
                         break
     
-        # --- 3. Layout jerárquico ---
-        pos = nx.nx_agraph.graphviz_layout(G_tree, prog="dot")
+            if not has_parent:
+                roots.append(parent_id)
+    
+        # --- 3. Layout jerárquico manual ---
+        pos = {}
+        level_nodes = defaultdict(list)
+    
+        def assign_levels(node, level):
+            level_nodes[level].append(node)
+            for child in children.get(node, []):
+                assign_levels(child, level + 1)
+    
+        for r in roots:
+            assign_levels(r, 0)
+    
+        y_gap = 2.5
+        x_gap = 2.5
+    
+        for level, nodes in level_nodes.items():
+            for i, node in enumerate(nodes):
+                pos[node] = (i * x_gap, -level * y_gap)
     
         # --- 4. Dibujar ---
         fig, ax = plt.subplots(figsize=(18, 10))
@@ -211,8 +230,7 @@ else:
             ax=ax
         )
     
-        for n in G_tree.nodes():
-            x, y = pos[n]
+        for n, (x, y) in pos.items():
             ax.text(
                 x, y,
                 node_labels[n],
@@ -227,6 +245,7 @@ else:
     
         ax.axis('off')
         st.pyplot(fig)
+
 
 
        
