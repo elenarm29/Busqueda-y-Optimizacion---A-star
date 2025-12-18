@@ -244,37 +244,52 @@ else:
             st.table(pd.DataFrame(final_rows).style.format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"}))
 
             # Grafo final
-            st.subheader("Grafo")
-            st.write("En azul se muestra el camino escogido:")
+            # --------------------------
+            # Grafo Visual con resaltado
+            # --------------------------
+            st.subheader("Grafo de rutas")
+            st.write("El camino óptimo se resalta en azul (nodos y aristas) sobre la red original:")
+            
             pos_fixed = { "A": (0, 2.7), "B": (1, 3), "C": (2, 3), "F": (0.2, 1.7), 
                           "D": (2.2, 2), "E": (1, 1), "G": (0, 0), "H": (2.1, 0) }
-            fig, ax = plt.subplots(figsize=(7,6))
-            nx.draw_networkx_nodes(G, pos_fixed, node_size=800, node_color="white", edgecolors="black", linewidths=2, ax=ax)
-            nx.draw_networkx_labels(G, pos_fixed, font_weight='bold', ax=ax)
+            
+            # Identificar elementos del camino
+            path_nodes = [n["state"] for n in path]
+            path_edges = list(zip(path_nodes[:-1], path_nodes[1:]))
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            
+            # 1. Dibujar aristas que NO son del camino (capa inferior)
+            for u, v, attrs in G.edges(data=True):
+                if (u, v) not in path_edges:
+                    col = attrs.get('color','gray').lower()
+                    c = 'green' if col.startswith('v') else ('orange' if col.startswith('n') else ('red' if col.startswith('r') else 'gray'))
+                    nx.draw_networkx_edges(G, pos_fixed, edgelist=[(u,v)], edge_color=c, width=2.0,
+                                           arrows=True, arrowstyle='-|>', arrowsize=10,
+                                           connectionstyle='arc3,rad=0.2', ax=ax,
+                                           min_source_margin=15, min_target_margin=15)
 
-            edge_colors = []
-            widths = []
-            for u,v,attrs in G.edges(data=True):
-                col = attrs.get('color','gray').lower()
-                if col.startswith('v'): edge_colors.append('green')
-                elif col.startswith('n'): edge_colors.append('orange')
-                elif col.startswith('r'): edge_colors.append('red')
-                else: edge_colors.append('gray')
-                widths.append(2.0)
+            # 2. Dibujar el camino óptimo (capa superior)
+            if path_edges:
+                nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='blue', width=5.0,
+                                       arrows=True, arrowstyle='-|>', arrowsize=18,
+                                       connectionstyle='arc3,rad=0.2', ax=ax,
+                                       min_source_margin=15, min_target_margin=15)
 
-            if len(path)>1:
-                path_edges = list(zip([n["state"] for n in path[:-1]], [n["state"] for n in path[1:]]))
-                nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='blue', width=4.0,
-                                       arrows=True, arrowstyle='-|>', arrowsize=16,
-                                       connectionstyle='arc3,rad=0.2',
-                                       ax=ax, min_source_margin=15, min_target_margin=15)
+            # 3. Dibujar nodos (Azul si están en el camino, blanco si no)
+            node_colors = ['#1f77b4' if n in path_nodes else 'white' for n in G.nodes()]
+            nx.draw_networkx_nodes(G, pos_fixed, node_size=800, node_color=node_colors, 
+                                   edgecolors="black", linewidths=2, ax=ax)
 
-            nx.draw_networkx_edges(G, pos_fixed, edge_color=edge_colors, width=widths,
-                                   arrows=True, arrowstyle='-|>', arrowsize=10,
-                                   connectionstyle='arc3,rad=0.2', ax=ax,
-                                   min_source_margin=15, min_target_margin=15)
+            # 4. Etiquetas de los nodos (Texto blanco sobre azul para legibilidad)
+            for node, (x, y) in pos_fixed.items():
+                t_col = 'white' if node in path_nodes else 'black'
+                ax.text(x, y, node, fontsize=11, fontweight='bold', va='center', ha='center', color=t_col)
+
+            # Etiquetas de aristas
             edge_labels = {(u,v): f"{attrs['km']}km/{attrs['cost_state']}" for u,v,attrs in G.edges(data=True)}
-            nx.draw_networkx_edge_labels(G, pos_fixed, edge_labels=edge_labels, font_size=8, ax=ax)
+            nx.draw_networkx_edge_labels(G, pos_fixed, edge_labels=edge_labels, font_size=7, ax=ax, label_pos=0.3)
+            
             ax.axis('off')
             st.pyplot(fig)
 
