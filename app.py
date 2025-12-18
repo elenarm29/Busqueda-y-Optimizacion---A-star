@@ -48,6 +48,9 @@ else:
         ("H","D","Rojo",8,466), ("H","G","Rojo",8,727),
     ]
 
+    # --------------------------
+    # Construir grafo
+    # --------------------------
     G = nx.DiGraph()
     for o,d,color,cost,km in edges:
         G.add_edge(o, d, color=color, cost_state=cost, km=km)
@@ -65,6 +68,8 @@ else:
     )
 
     def h_informada(nodo):
+        if nodo == goal:
+            return 0
         outgoing = [attrs["km"] for _, _, attrs in G.out_edges(nodo, data=True)]
         return min(outgoing) * 2 if outgoing else 0
     
@@ -76,22 +81,16 @@ else:
         st.caption("Heurística nula: el algoritmo se comporta como Dijkstra.")
     else:
         h_fn = h_informada
-        st.caption("Heurística informada: km mínimo saliente × 2.")
+        st.caption("Heurística subestimada basada en el arco saliente más corto, multiplicando por el costo más barato.")
 
     # --------------------------
-    # A* clásico con logging completo
+    # Función A* completa
     # --------------------------
     def a_star(graph, start, goal, heuristic_fn):
-        """
-        A* clásico completo:
-        - Siempre expandimos el nodo de menor f.
-        - Todos los hijos se agregan al OPEN inmediatamente al expandir el nodo padre.
-        - El registro de expansiones refleja el orden de generación de hijos.
-        """
         open_heap = []
         closed_set = set()
         counter = 0
-    
+
         start_node = {
             "state": start,
             "g": 0,
@@ -99,38 +98,33 @@ else:
             "f": heuristic_fn(start),
             "parent": None
         }
-    
+
         heapq.heappush(open_heap, (start_node["f"], counter, start_node))
         counter += 1
-    
+
         expansions = []
         solution_node = None
-    
+
         while open_heap:
             f_current, _, current = heapq.heappop(open_heap)
-    
-            # Saltar si ya está cerrado
+
             if current["state"] in closed_set:
                 continue
-    
-            # Marcar como cerrado
+
             closed_set.add(current["state"])
-    
-            # Guardamos el nodo padre (expandido)
             expansions.append(current)
-    
-            # Condición de parada
+
             if current["state"] == goal:
                 solution_node = current
                 break
-    
-            # EXPANDIR TODOS LOS HIJOS DEL NODO ACTUAL
+
+            # EXPANDIR TODOS LOS HIJOS del nodo actual
             children_nodes = []
             for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
-                h_new = heuristic_fn(neighbor)
+                h_new = 0 if neighbor == goal else heuristic_fn(neighbor)
                 f_new = g_new + h_new
-    
+
                 child = {
                     "state": neighbor,
                     "g": g_new,
@@ -138,22 +132,17 @@ else:
                     "f": f_new,
                     "parent": current
                 }
-    
-                # Añadimos al registro en orden de generación
+
                 children_nodes.append(child)
-    
-                # Todos los hijos van al OPEN (para selección A* según f)
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
-    
-            # Guardamos todos los hijos en el log inmediatamente después del padre
+
             expansions.extend(children_nodes)
-    
+
         return solution_node, expansions
 
-    
     # --------------------------
-    # Dibujar árbol de expansión jerárquico
+    # Dibujar árbol de expansión
     # --------------------------
     def draw_expansion_tree(solution_node, expansions):
         G_tree = nx.DiGraph()
@@ -161,58 +150,55 @@ else:
         colors = {}
         id_map = {}
 
+        # Nodos únicos y label
         for i, node in enumerate(expansions):
             node_id = f"{node['state']}_{i}"
             id_map[id(node)] = node_id
             G_tree.add_node(node_id)
-            labels[node_id] = (
-                f"{node['state']} ({i})\n"
-                f"g={node['g']:.0f}, h={node['h']:.0f}, f={node['f']:.0f}"
-            )
+            labels[node_id] = f"{node['state']} ({i})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
             colors[node_id] = "lightgray"
 
+        # Aristas padre -> hijo
         for node in expansions:
             if node["parent"]:
                 G_tree.add_edge(id_map[id(node["parent"])], id_map[id(node)])
 
+        # Camino solución
         current = solution_node
         while current:
             colors[id_map[id(current)]] = "lightgreen"
             current = current["parent"]
 
+        # Posición jerárquica
         parent_children = defaultdict(list)
         for node in expansions:
             if node["parent"]:
                 parent_children[id_map[id(node["parent"])]].append(id_map[id(node)])
 
         pos = {}
-        y_gap = 2.5
-        x_gap = 2.5
+        root = id_map[id(expansions[0])]
 
-        def assign_pos(node, x_center, lvl):
+        def assign_pos(node, x_center, y_level):
             children = parent_children.get(node, [])
             n = len(children)
-            pos[node] = (x_center, -lvl * y_gap)
             if n == 0:
+                pos[node] = (x_center, -y_level * 3)
                 return
-            width = (n - 1) * x_gap
+            width = (n-1) * 3
             for i, child in enumerate(children):
-                x_child = x_center - width / 2 + i * x_gap
-                assign_pos(child, x_child, lvl + 1)
+                x_child = x_center - width/2 + i * 3
+                pos[child] = (x_child, - (y_level+1) * 3)
+                assign_pos(child, x_child, y_level+1)
 
-        root_id = id_map[id(expansions[0])]
-        assign_pos(root_id, 0, 0)
+        pos[root] = (0, 0)
+        assign_pos(root, 0, 0)
 
-        fig, ax = plt.subplots(figsize=(18, 10))
-        nx.draw_networkx_edges(G_tree, pos, arrows=True, arrowstyle='-|>', arrowsize=10, ax=ax)
-        for node, (x, y) in pos.items():
-            ax.text(
-                x, y,
-                labels[node],
-                ha='center', va='center',
-                fontsize=9,
-                bbox=dict(boxstyle="round,pad=0.4", facecolor=colors[node], edgecolor="black")
-            )
+        # Dibujar con curvas y flechas
+        fig, ax = plt.subplots(figsize=(18,10))
+        nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=10, connectionstyle='arc3,rad=0.2', ax=ax)
+        for n, (x, y) in pos.items():
+            ax.text(x, y, labels[n], ha='center', va='center', fontsize=10,
+                    bbox=dict(boxstyle="round,pad=0.4", facecolor=colors[n], edgecolor="black"))
         ax.axis("off")
         st.pyplot(fig)
 
@@ -223,50 +209,54 @@ else:
         solution, expansions = a_star(G, start, goal, h_fn)
 
         if solution:
+            # Camino óptimo
             st.subheader("Camino óptimo")
             path = []
-            cur = solution
-            while cur:
-                path.append(cur)
-                cur = cur["parent"]
+            current = solution
+            while current:
+                path.append(current)
+                current = current["parent"]
             path = path[::-1]
 
-            table = [
-                {"node": n["state"], "g": n["g"], "h": n["h"], "f": n["f"]}
-                for n in path
-            ]
-            st.table(pd.DataFrame(table).style.format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"}))
+            final_rows = [{"node": n["state"], "g": n["g"], "h": n["h"], "f": n["f"]} for n in path]
+            st.table(pd.DataFrame(final_rows).style.format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"}))
 
-            st.subheader("Grafo final")
-            pos_fixed = {
-                "A": (0, 2.7), "B": (1, 3), "C": (2, 3), "F": (0.2, 1.7),
-                "D": (2.2, 2), "E": (1, 1), "G": (0, 0), "H": (2.1, 0)
-            }
-            fig, ax = plt.subplots(figsize=(7, 6))
-            nx.draw_networkx_nodes(G, pos_fixed, node_size=800, node_color="white", edgecolors="black", ax=ax)
-            nx.draw_networkx_labels(G, pos_fixed, font_weight="bold", ax=ax)
+            # Grafo final
+            st.subheader("Grafo")
+            st.write("En azul se muestra el camino escogido:")
+            pos_fixed = { "A": (0, 2.7), "B": (1, 3), "C": (2, 3), "F": (0.2, 1.7), 
+                          "D": (2.2, 2), "E": (1, 1), "G": (0, 0), "H": (2.1, 0) }
+            fig, ax = plt.subplots(figsize=(7,6))
+            nx.draw_networkx_nodes(G, pos_fixed, node_size=800, node_color="white", edgecolors="black", linewidths=2, ax=ax)
+            nx.draw_networkx_labels(G, pos_fixed, font_weight='bold', ax=ax)
 
             edge_colors = []
-            for u, v, attrs in G.edges(data=True):
-                col = attrs["color"].lower()
-                if col.startswith("v"):
-                    edge_colors.append("green")
-                elif col.startswith("n"):
-                    edge_colors.append("orange")
-                else:
-                    edge_colors.append("red")
+            widths = []
+            for u,v,attrs in G.edges(data=True):
+                col = attrs.get('color','gray').lower()
+                if col.startswith('v'): edge_colors.append('green')
+                elif col.startswith('n'): edge_colors.append('orange')
+                elif col.startswith('r'): edge_colors.append('red')
+                else: edge_colors.append('gray')
+                widths.append(2.0)
 
-            nx.draw_networkx_edges(G, pos_fixed, edge_color=edge_colors, ax=ax)
-            path_edges = list(zip([n["state"] for n in path[:-1]], [n["state"] for n in path[1:]]))
-            nx.draw_networkx_edges(
-                G, pos_fixed, edgelist=path_edges,
-                edge_color="blue", width=3, arrows=True, arrowstyle='-|>'
-            )
-            edge_labels = {(u, v): f"{attrs['km']}km/{attrs['cost_state']}" for u, v, attrs in G.edges(data=True)}
-            nx.draw_networkx_edge_labels(G, pos_fixed, edge_labels=edge_labels, ax=ax)
-            ax.axis("off")
+            if len(path)>1:
+                path_edges = list(zip([n["state"] for n in path[:-1]], [n["state"] for n in path[1:]]))
+                nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='blue', width=4.0,
+                                       arrows=True, arrowstyle='-|>', arrowsize=16,
+                                       connectionstyle='arc3,rad=0.2',
+                                       ax=ax, min_source_margin=15, min_target_margin=15)
+
+            nx.draw_networkx_edges(G, pos_fixed, edge_color=edge_colors, width=widths,
+                                   arrows=True, arrowstyle='-|>', arrowsize=10,
+                                   connectionstyle='arc3,rad=0.2', ax=ax,
+                                   min_source_margin=15, min_target_margin=15)
+            edge_labels = {(u,v): f"{attrs['km']}km/{attrs['cost_state']}" for u,v,attrs in G.edges(data=True)}
+            nx.draw_networkx_edge_labels(G, pos_fixed, edge_labels=edge_labels, font_size=8, ax=ax)
+            ax.axis('off')
             st.pyplot(fig)
 
+            # Árbol de expansión
             st.subheader("Árbol de expansión")
-            st.write("En verde se muestran los nodos en el camino final.")
+            st.write("En verde se muestran los nodos finales escogidos")
             draw_expansion_tree(solution, expansions)
