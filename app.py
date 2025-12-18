@@ -163,13 +163,12 @@ else:
         G_tree = nx.DiGraph()
         node_labels = {}
         node_colors = {}
+        children = defaultdict(list)
     
         # --- 1. Crear nodos por expansión ---
-        exp_nodes = {}   # (estado, step) -> node_id
-        children = defaultdict(list)
-        roots = []
+        exp_nodes = {}
     
-        for step, current, g, h, f, neighbors, open_nodes, closed_nodes in expansion_log:
+        for step, current, g, h, f, neighbors, *_ in expansion_log:
             node_id = f"{current}_{step}"
             exp_nodes[(current, step)] = node_id
             G_tree.add_node(node_id)
@@ -181,45 +180,59 @@ else:
                 f"f={f:.0f}"
             )
     
-            node_colors[node_id] = "lightgreen" if solution_path and current in solution_path else "lightgray"
+            node_colors[node_id] = (
+                "lightgreen" if solution_path and current in solution_path else "lightgray"
+            )
     
-        # --- 2. Crear relaciones padre → hijos ---
+        # --- 2. Crear aristas padre → hijos ---
         for i, (step, current, g, h, f, neighbors, *_ ) in enumerate(expansion_log):
             parent_id = exp_nodes[(current, step)]
     
-            has_parent = False
             for neigh in neighbors:
                 for s2, cur2, *_ in expansion_log[i+1:]:
                     if cur2 == neigh:
                         child_id = exp_nodes[(cur2, s2)]
                         G_tree.add_edge(parent_id, child_id)
                         children[parent_id].append(child_id)
-                        has_parent = True
                         break
     
-            if not has_parent:
-                roots.append(parent_id)
+        # --- 3. Calcular niveles (BFS desde raíces reales) ---
+        roots = [n for n in G_tree.nodes() if G_tree.in_degree(n) == 0]
     
-        # --- 3. Layout jerárquico manual ---
+        level = {}
+        queue = []
+    
+        for r in roots:
+            level[r] = 0
+            queue.append(r)
+    
+        while queue:
+            parent = queue.pop(0)
+            for child in children.get(parent, []):
+                if child not in level:
+                    level[child] = level[parent] + 1
+                    queue.append(child)
+    
+        # --- 4. Asignar posiciones (TODOS los nodos) ---
         pos = {}
         level_nodes = defaultdict(list)
     
-        def assign_levels(node, level):
-            level_nodes[level].append(node)
-            for child in children.get(node, []):
-                assign_levels(child, level + 1)
-    
-        for r in roots:
-            assign_levels(r, 0)
+        for node, lvl in level.items():
+            level_nodes[lvl].append(node)
     
         y_gap = 2.5
-        x_gap = 2.5
+        x_gap = 2.8
     
-        for level, nodes in level_nodes.items():
+        for lvl, nodes in level_nodes.items():
             for i, node in enumerate(nodes):
-                pos[node] = (i * x_gap, -level * y_gap)
+                pos[node] = (i * x_gap, -lvl * y_gap)
     
-        # --- 4. Dibujar ---
+        # 🔒 Seguridad: nodos sin nivel (no debería haber, pero por si acaso)
+        missing = set(G_tree.nodes()) - set(pos.keys())
+        for i, node in enumerate(missing):
+            pos[node] = (i * x_gap, -(max(level.values(), default=0) + 1) * y_gap)
+    
+        # --- 5. Dibujar ---
         fig, ax = plt.subplots(figsize=(18, 10))
     
         nx.draw_networkx_edges(
@@ -230,15 +243,15 @@ else:
             ax=ax
         )
     
-        for n, (x, y) in pos.items():
+        for node, (x, y) in pos.items():
             ax.text(
                 x, y,
-                node_labels[n],
+                node_labels[node],
                 ha='center', va='center',
                 fontsize=10,
                 bbox=dict(
                     boxstyle="round,pad=0.5",
-                    facecolor=node_colors[n],
+                    facecolor=node_colors[node],
                     edgecolor='black'
                 )
             )
