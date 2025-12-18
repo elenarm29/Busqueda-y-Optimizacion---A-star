@@ -85,13 +85,12 @@ else:
 
     # --------------------------
     # Función A* completa
-    # -------------------------- 
-
+    # --------------------------
     def a_star(graph, start, goal, heuristic_fn):
         open_heap = []
         closed_set = set()
         counter = 0
-    
+
         start_node = {
             "state": start,
             "g": 0,
@@ -99,38 +98,36 @@ else:
             "f": heuristic_fn(start),
             "parent": None
         }
-    
+
         heapq.heappush(open_heap, (start_node["f"], counter, start_node))
         counter += 1
-    
+
         expansions = []
         solution_node = None
-        iter_counter = 0  # para asignar iteration al expandir
-    
+        iter_counter = 0  # contador de expansión real
+
         while open_heap:
             f_current, _, current = heapq.heappop(open_heap)
-    
+        
             if current["state"] in closed_set:
                 continue
-    
-            # Nodo expandido: asignar iteration
+        
+            # Nodo expandido: asignar iteración real
             current["iteration"] = iter_counter
             iter_counter += 1
             expansions.append(current)
             closed_set.add(current["state"])
-    
+        
             if current["state"] == goal:
                 solution_node = current
                 break
-    
-            # Expandir hijos en orden alfabético
-            neighbors = sorted(list(graph.successors(current["state"])))
-            for neighbor in neighbors:
-                attrs = graph.get_edge_data(current["state"], neighbor)
+        
+            # Expandir todos los hijos
+            for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
                 h_new = 0 if neighbor == goal else heuristic_fn(neighbor)
                 f_new = g_new + h_new
-    
+        
                 child = {
                     "state": neighbor,
                     "g": g_new,
@@ -138,12 +135,11 @@ else:
                     "f": f_new,
                     "parent": current
                 }
-    
+        
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
-    
-        return solution_node, expansions
 
+        return solution_node, expansions
 
     # --------------------------
     # Dibujar árbol de expansión
@@ -181,6 +177,7 @@ else:
 
         pos = {}
         root = id_map[id(expansions[0])]
+        pos[root] = (0, 0)  # root arriba en el medio
 
         def assign_pos(node, x_center, y_level):
             children = parent_children.get(node, [])
@@ -188,15 +185,12 @@ else:
             if n == 0:
                 pos[node] = (x_center, -y_level * 3)
                 return
-            # Distribuir hijos horizontalmente
             width = max(n-1, 1) * 3  # evita width=0 si n=1
             for i, child in enumerate(children):
                 x_child = x_center - width/2 + i * 3
                 pos[child] = (x_child, - (y_level+1) * 3)
                 assign_pos(child, x_child, y_level+1)
 
-
-        pos[root] = (0, 0)
         assign_pos(root, 0, 0)
 
         # Dibujar con curvas y flechas
