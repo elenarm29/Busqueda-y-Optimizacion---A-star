@@ -82,10 +82,16 @@ else:
     # A* clásico con logging completo
     # --------------------------
     def a_star(graph, start, goal, heuristic_fn):
+        """
+        A* clásico completo:
+        - Siempre expandimos el nodo de menor f.
+        - Todos los hijos se agregan al OPEN inmediatamente al expandir el nodo padre.
+        - El registro de expansiones refleja el orden de generación de hijos.
+        """
         open_heap = []
-        g_scores = {start: 0}      # mejor g conocido por estado
+        closed_set = set()
         counter = 0
-
+    
         start_node = {
             "state": start,
             "g": 0,
@@ -93,44 +99,59 @@ else:
             "f": heuristic_fn(start),
             "parent": None
         }
+    
         heapq.heappush(open_heap, (start_node["f"], counter, start_node))
         counter += 1
-
+    
         expansions = []
         solution_node = None
-
+    
         while open_heap:
             f_current, _, current = heapq.heappop(open_heap)
-
-            # Guardamos la expansión actual
+    
+            # Saltar si ya está cerrado
+            if current["state"] in closed_set:
+                continue
+    
+            # Marcar como cerrado
+            closed_set.add(current["state"])
+    
+            # Guardamos el nodo padre (expandido)
             expansions.append(current)
-
-            # Si es objetivo y es el mejor, cortamos
+    
+            # Condición de parada
             if current["state"] == goal:
                 solution_node = current
                 break
-
-            # Expandir todos los hijos
+    
+            # EXPANDIR TODOS LOS HIJOS DEL NODO ACTUAL
+            children_nodes = []
             for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
                 h_new = heuristic_fn(neighbor)
                 f_new = g_new + h_new
-
-                # A* clásica: solo consideramos mejor g
-                if neighbor not in g_scores or g_new < g_scores[neighbor]:
-                    g_scores[neighbor] = g_new
-                    child = {
-                        "state": neighbor,
-                        "g": g_new,
-                        "h": h_new,
-                        "f": f_new,
-                        "parent": current
-                    }
-                    heapq.heappush(open_heap, (f_new, counter, child))
-                    counter += 1
-
+    
+                child = {
+                    "state": neighbor,
+                    "g": g_new,
+                    "h": h_new,
+                    "f": f_new,
+                    "parent": current
+                }
+    
+                # Añadimos al registro en orden de generación
+                children_nodes.append(child)
+    
+                # Todos los hijos van al OPEN (para selección A* según f)
+                heapq.heappush(open_heap, (f_new, counter, child))
+                counter += 1
+    
+            # Guardamos todos los hijos en el log inmediatamente después del padre
+            expansions.extend(children_nodes)
+    
         return solution_node, expansions
 
+    
     # --------------------------
     # Dibujar árbol de expansión jerárquico
     # --------------------------
