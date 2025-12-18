@@ -113,7 +113,6 @@ else:
                 continue
 
             closed_set.add(current["state"])
-            expansions.append(current)
             
             if current["state"] not in closed_set:
                 current["iteration"] = iter_counter  # guardar número
