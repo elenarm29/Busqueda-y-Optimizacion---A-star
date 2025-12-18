@@ -115,9 +115,11 @@ else:
             closed_set.add(current["state"])
             
             if current["state"] not in closed_set:
-                current["iteration"] = iter_counter  # guardar número
+                current["iteration"] = iter_counter
                 iter_counter += 1
-                expansions.append(current)    
+                expansions.append(current)
+                closed_set.add(current["state"])
+ 
 
             if current["state"] == goal:
                 solution_node = current
