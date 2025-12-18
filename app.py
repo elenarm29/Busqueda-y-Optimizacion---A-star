@@ -271,7 +271,7 @@ else:
 
             # 2. Dibujar el camino óptimo (capa superior)
             if path_edges:
-                nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='blue', width=5.0,
+                nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='lightblue', width=5.0,
                                        arrows=True, arrowstyle='-|>', arrowsize=18,
                                        connectionstyle='arc3,rad=0.2', ax=ax,
                                        min_source_margin=15, min_target_margin=15)
