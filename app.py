@@ -116,7 +116,9 @@ else:
                 break
 
             # Expandir todos los hijos
-            neighbors = sorted([n for _,n,_ in graph.out_edges(current["state"])])
+            # obtener solo vecinos ordenados alfabéticamente
+            neighbors = sorted([v for _, v, _ in graph.out_edges(current["state"], data=True)])
+
             for neighbor in neighbors:
                 attrs = graph.get_edge_data(current["state"], neighbor)
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
