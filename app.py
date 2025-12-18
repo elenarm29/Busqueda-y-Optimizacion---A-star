@@ -139,40 +139,51 @@ else:
     # Dibujar árbol de expansión
     # --------------------------
     def draw_expansion_tree(solution_node, expansions):
+        import networkx as nx
+        import matplotlib.pyplot as plt
+        from collections import defaultdict
+    
         G_tree = nx.DiGraph()
         labels = {}
         colors = {}
         id_map = {}
-
+    
+        # Crear nodos únicos
         for i, node in enumerate(expansions):
             node_id = f"{node['state']}_{i}"
             id_map[id(node)] = node_id
             G_tree.add_node(node_id)
             labels[node_id] = f"{node['state']}\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
             colors[node_id] = "lightgray"
-
+    
+        # Crear aristas padre -> hijo
         for node in expansions:
             if node["parent"]:
                 G_tree.add_edge(id_map[id(node["parent"])], id_map[id(node)])
-
+    
         # Marcar camino solución
         current = solution_node
         while current:
             colors[id_map[id(current)]] = "lightgreen"
             current = current["parent"]
-
-        # Posiciones por niveles
-        levels = defaultdict(list)
-        root = list(G_tree.nodes())[0]
-        for node in G_tree.nodes():
-            depth = nx.shortest_path_length(G_tree, root, node)
-            levels[depth].append(node)
-
-        pos = {}
-        for depth, nodes in levels.items():
-            for i, n in enumerate(nodes):
-                pos[n] = (i * 3, -depth * 2.5)
-
+    
+        # ----------------------
+        # Posición con Graphviz (árbol centrado)
+        # ----------------------
+        try:
+            pos = nx.nx_agraph.graphviz_layout(G_tree, prog='dot')
+        except:
+            # fallback manual si no tienes pygraphviz
+            levels = defaultdict(list)
+            root = list(G_tree.nodes())[0]
+            for node in G_tree.nodes():
+                depth = nx.shortest_path_length(G_tree, root, node)
+                levels[depth].append(node)
+            pos = {}
+            for depth, nodes in levels.items():
+                for i, n in enumerate(nodes):
+                    pos[n] = (i*3 - len(nodes), -depth*3)
+    
         # Dibujar
         fig, ax = plt.subplots(figsize=(18, 10))
         nx.draw_networkx_edges(G_tree, pos, arrows=True, arrowstyle='-|>', arrowsize=12, ax=ax)
@@ -181,6 +192,9 @@ else:
                     bbox=dict(boxstyle="round,pad=0.4", facecolor=colors[n], edgecolor="black"))
         ax.axis("off")
         st.pyplot(fig)
+
+
+    
 
     # --------------------------
     # Ejecutar A* y mostrar resultados
