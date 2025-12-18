@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from collections import defaultdict
 
+import plotly.graph_objects as go
 
 
 # -------------------------
