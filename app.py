@@ -108,42 +108,50 @@ else:
 
         while open_heap:
             f_current, _, current = heapq.heappop(open_heap)
-
+        
             if current["state"] in closed_set:
                 continue
-
+        
+            # Asignar iteration y agregar a expansiones
+            current["iteration"] = iter_counter
+            iter_counter += 1
+            expansions.append(current)
             closed_set.add(current["state"])
-            
-            if current["state"] not in closed_set:
-                current["iteration"] = iter_counter
+        
+            if current["state"] == goal:
+                solution_node = current
+                break
+        
+            # Expandir hijos
+            for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
+                g_new = current["g"] + attrs["km"] * attrs["cost_state"]
+                h_new = 0 if neighbor == goal else heuristic_fn(neighbor)
+                f_new = g_new + h_new
+        
+                child = {
+                    "state": neighbor,
+                    "g": g_new,
+                    "h": h_new,
+                    "f": f_new,
+                    "parent": current,
+                    "iteration": iter_counter
+                }
                 iter_counter += 1
-                expansions.append(current)
-                closed_set.add(current["state"])
- 
+        
+                expansions.append(child)
+                heapq.heappush(open_heap, (f_new, counter, child))
+                counter += 1
+
+            
+
+
+
 
             if current["state"] == goal:
                 solution_node = current
                 break
 
 
-            # EXPANDIR TODOS LOS HIJOS del nodo actual
-            children_nodes = []
-            for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
-                g_new = current["g"] + attrs["km"] * attrs["cost_state"]
-                h_new = 0 if neighbor == goal else heuristic_fn(neighbor)
-                f_new = g_new + h_new
-
-                child = {
-                    "state": neighbor,
-                    "g": g_new,
-                    "h": h_new,
-                    "f": f_new,
-                    "parent": current
-                }
-
-                children_nodes.append(child)
-                heapq.heappush(open_heap, (f_new, counter, child))
-                counter += 1
 
             expansions.extend(children_nodes)
 
