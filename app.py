@@ -148,90 +148,103 @@ else:
     # Árbol de expansión
     # --------------------------
     def draw_expansion_tree(solution_node, expansions):
-            G_tree = nx.DiGraph()
-            labels, colors, id_map = {}, {}, {}
-    
-            all_nodes = []
-            for e in expansions:
-                if e not in all_nodes: all_nodes.append(e)
-                for child in e["children"]:
-                    if child not in all_nodes: all_nodes.append(child)
-    
-            for i, node in enumerate(all_nodes):
-                node_id = f"{node['state']}_{i}"
-                id_map[id(node)] = node_id
-                G_tree.add_node(node_id)
-                labels[node_id] = f"{node['state']} ({node['iteration']})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
-                colors[node_id] = "#e0e0e0" if node in expansions else "#ffffff"
-    
-            for node in all_nodes:
-                if node["parent"] and id(node["parent"]) in id_map:
-                    G_tree.add_edge(id_map[id(node["parent"])], id_map[id(node)])
-    
-            current = solution_node
-            while current:
-                if id(current) in id_map: colors[id_map[id(current)]] = "#90ee90"
-                current = current["parent"]
-    
-            pos = {}
-            parent_children = defaultdict(list)
-            for node in all_nodes:
-                if node["parent"]:
-                    parent_children[id_map[id(node["parent"])]].append(id_map[id(node)])
-    
-            # --- CÁLCULO DE ESCALADO DINÁMICO ---
-            # Contamos cuántos nodos hay por nivel para ver la densidad
-            level_counts = defaultdict(int)
-            def count_levels(n_id, level):
-                level_counts[level] += 1
-                for child in parent_children.get(n_id, []):
-                    count_levels(child, level + 1)
+        # 1. Recopilar todos los nodos generados
+        all_nodes = []
+        for e in expansions:
+            if e not in all_nodes: all_nodes.append(e)
+            for child in e["children"]:
+                if child not in all_nodes: all_nodes.append(child)
+
+        # 2. Lógica de posicionamiento (usamos la misma que ya funcionaba bien)
+        parent_children = defaultdict(list)
+        node_data = {}
+        for i, node in enumerate(all_nodes):
+            n_id = f"{node['state']}_{i}"
+            node_data[n_id] = node
+            if node["parent"]:
+                # Buscamos el ID del padre en los nodos ya procesados
+                for prev_id, prev_node in node_data.items():
+                    if prev_node == node["parent"]:
+                        parent_children[prev_id].append(n_id)
+                        break
+
+        pos = {}
+        last_x_at_level = defaultdict(lambda: -1)
+        
+        def layout_tree(n_id, level):
+            children = sorted(parent_children.get(n_id, []))
+            for child in children:
+                layout_tree(child, level + 1)
+            if not children:
+                current_x = last_x_at_level[level] + 2.0
+            else:
+                avg_x_children = sum(pos[c][0] for c in children) / len(children)
+                current_x = max(avg_x_children, last_x_at_level[level] + 2.0)
+            pos[n_id] = (current_x, -level * 5)
+            last_x_at_level[level] = current_x
+
+        root_id = list(node_data.keys())[0]
+        layout_tree(root_id, 0)
+
+        # 3. Preparar aristas para Plotly
+        edge_x, edge_y = [], []
+        for p_id, children in parent_children.items():
+            for c_id in children:
+                edge_x += [pos[p_id][0], pos[c_id][0], None]
+                edge_y += [pos[p_id][1], pos[c_id][1], None]
+
+        # 4. Preparar nodos para Plotly
+        node_x, node_y, node_text, node_color, node_hover = [], [], [], [], []
+        
+        # Identificar camino solución para colorear
+        sol_path_nodes = []
+        curr = solution_node
+        while curr:
+            sol_path_nodes.append(curr)
+            curr = curr["parent"]
+
+        for n_id, (x, y) in pos.items():
+            node = node_data[n_id]
+            node_x.append(x)
+            node_y.append(y)
+            node_text.append(f"<b>{node['state']}</b>")
             
-            root_id = id_map[id(expansions[0])]
-            count_levels(root_id, 0)
-            
-            max_density = max(level_counts.values()) if level_counts else 1
-            
-            # Ajustamos tamaño de letra y separación según la densidad
-            # Si hay pocos nodos (densidad < 5), letra grande. Si hay muchos, letra pequeña.
-            dynamic_fontsize = max(6, min(10, 15 - max_density))
-            dynamic_spacing = max(1.2, min(2.5, 8 / max_density))
-            
-            last_x_at_level = defaultdict(lambda: -1) 
-            
-            def layout_tree(n_id, level):
-                children = sorted(parent_children.get(n_id, []))
-                for child in children:
-                    layout_tree(child, level + 1)
-                
-                if not children:
-                    current_x = last_x_at_level[level] + dynamic_spacing
-                else:
-                    avg_x_children = sum(pos[c][0] for c in children) / len(children)
-                    current_x = max(avg_x_children, last_x_at_level[level] + dynamic_spacing)
-                
-                pos[n_id] = (current_x, -level * 4)
-                last_x_at_level[level] = current_x
-    
-            layout_tree(root_id, 0)
-    
-            min_x = min(p[0] for p in pos.values())
-            max_x = max(p[0] for p in pos.values())
-            for n_id in pos:
-                pos[n_id] = (pos[n_id][0] - (min_x + max_x)/2, pos[n_id][1])
-    
-            width_fig = max(12, max_density * dynamic_spacing * 2)
-            fig, ax = plt.subplots(figsize=(width_fig, 8))
-            
-            nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=15, edge_color="darkgray", ax=ax, alpha=0.5)
-            
-            for n_id, (x, y) in pos.items():
-                ax.text(x, y, labels[n_id], ha='center', va='center', 
-                        fontsize=dynamic_fontsize, # <--- Letra dinámica
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor=colors[n_id], edgecolor="black", alpha=1.0))
-            
-            ax.axis("off")
-            st.pyplot(fig, use_container_width=True)
+            # Info detallada al pasar el ratón (Hover)
+            hover = (f"Nodo: {node['state']}<br>Iteración: {node['iteration']}<br>"
+                     f"g: {node['g']:.2f}<br>h: {node['h']:.2f}<br>f: {node['f']:.2f}")
+            node_hover.append(hover)
+
+            # Color
+            if node in sol_path_nodes: color = "#90ee90" # Verde
+            elif node in expansions: color = "#e0e0e0"   # Gris
+            else: color = "#ffffff"                      # Blanco
+            node_color.append(color)
+
+        # 5. Crear la figura interactiva
+        fig = go.Figure()
+
+        # Añadir aristas
+        fig.add_trace(go.Scatter(x=edge_x, y=edge_y, line=dict(width=1, color='#888'),
+                                 hoverinfo='none', mode='lines'))
+
+        # Añadir nodos
+        fig.add_trace(go.Scatter(x=node_x, y=node_y, mode='markers+text',
+                                 text=node_text, textposition="top center",
+                                 hoverinfo='text', hovertext=node_hover,
+                                 marker=dict(size=25, color=node_color, line=dict(width=2, color='black'))))
+
+        fig.update_layout(
+            title="Árbol de Expansión Interactivo (Usa la rueda del ratón para Zoom)",
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=0, l=0, r=0, t=40),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            plot_bgcolor='rgba(0,0,0,0)',
+            height=800 # Altura fija generosa
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
     
 
     # --------------------------
