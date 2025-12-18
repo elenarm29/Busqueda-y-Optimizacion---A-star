@@ -154,98 +154,99 @@ else:
 
         # --------------------------
         # Dibujar árbol de expansión
-        # --------------------------def draw_decision_tree(solution_path, expansion_log, g_vals, h_vals, f_vals):
-        import networkx as nx
-        import matplotlib.pyplot as plt
-    
-        G_tree = nx.DiGraph()
-        node_labels = {}
-        node_colors = {}
-        parent_of = {}
-        pos = {}
-    
-        # --- 1. Crear nodos por expansión ---
-        # cada expansión es un nodo único
-        exp_nodes = []   # [(exp_id, state)]
-        state_last_exp = {}  # estado -> última expansión
-    
-        for step, current, g, h, f, neighbors, open_nodes, closed_nodes in expansion_log:
-            exp_id = f"{current}_{step}"
-            exp_nodes.append((exp_id, current))
-    
-            G_tree.add_node(exp_id)
-    
-            node_labels[exp_id] = (
-                f"{current} ({step})\n"
-                f"g={g:.0f}\n"
-                f"h={h:.0f}\n"
-                f"f={f:.0f}"
-            )
-    
-            # verde SOLO si está en el camino final
-            if solution_path and current in solution_path:
-                node_colors[exp_id] = "lightgreen"
-            else:
-                node_colors[exp_id] = "lightgray"
-    
-            # conectar con su padre (última expansión del padre)
-            if step > 1:
-                parent_state = expansion_log[step-2][1]
-                parent_exp = state_last_exp.get(parent_state)
-                if parent_exp:
-                    G_tree.add_edge(parent_exp, exp_id)
-                    parent_of[exp_id] = parent_exp
-    
-            state_last_exp[current] = exp_id
-    
-        # --- 2. Layout jerárquico centrado ---
-        y_gap = 1.5
-    
-        for node in nx.topological_sort(G_tree):
-            if node not in parent_of:
-                pos[node] = (0.5, 0)
-            else:
-                parent = parent_of[node]
-                x_parent, y_parent = pos[parent]
-    
-                siblings = [n for n, p in parent_of.items() if p == parent]
-                idx = siblings.index(node)
-                n_siblings = len(siblings)
-    
-                width = 0.6
-                start_x = x_parent - width / 2
-                dx = width / (n_siblings - 1) if n_siblings > 1 else 0
-    
-                pos[node] = (start_x + idx * dx, y_parent - y_gap)
-    
-        # --- 3. Dibujar ---
-        fig, ax = plt.subplots(figsize=(16, 9))
-    
-        nx.draw_networkx_edges(
-            G_tree, pos,
-            arrows=True,
-            arrowstyle='-|>',
-            arrowsize=10,
-            edge_color='black',
-            ax=ax
-        )
-    
-        for n in G_tree.nodes():
-            x, y = pos[n]
-            ax.text(
-                x, y,
-                node_labels[n],
-                ha='center', va='center',
-                fontsize=10, fontweight='bold',
-                bbox=dict(
-                    boxstyle="round,pad=0.6,rounding_size=0.3",
-                    facecolor=node_colors[n],
-                    edgecolor='black'
+        # --------------------------
+        def draw_decision_tree(solution_path, expansion_log, g_vals, h_vals, f_vals):
+            import networkx as nx
+            import matplotlib.pyplot as plt
+        
+            G_tree = nx.DiGraph()
+            node_labels = {}
+            node_colors = {}
+            parent_of = {}
+            pos = {}
+        
+            # --- 1. Crear nodos por expansión ---
+            # cada expansión es un nodo único
+            exp_nodes = []   # [(exp_id, state)]
+            state_last_exp = {}  # estado -> última expansión
+        
+            for step, current, g, h, f, neighbors, open_nodes, closed_nodes in expansion_log:
+                exp_id = f"{current}_{step}"
+                exp_nodes.append((exp_id, current))
+        
+                G_tree.add_node(exp_id)
+        
+                node_labels[exp_id] = (
+                    f"{current} ({step})\n"
+                    f"g={g:.0f}\n"
+                    f"h={h:.0f}\n"
+                    f"f={f:.0f}"
                 )
+        
+                # verde SOLO si está en el camino final
+                if solution_path and current in solution_path:
+                    node_colors[exp_id] = "lightgreen"
+                else:
+                    node_colors[exp_id] = "lightgray"
+        
+                # conectar con su padre (última expansión del padre)
+                if step > 1:
+                    parent_state = expansion_log[step-2][1]
+                    parent_exp = state_last_exp.get(parent_state)
+                    if parent_exp:
+                        G_tree.add_edge(parent_exp, exp_id)
+                        parent_of[exp_id] = parent_exp
+        
+                state_last_exp[current] = exp_id
+        
+            # --- 2. Layout jerárquico centrado ---
+            y_gap = 1.5
+        
+            for node in nx.topological_sort(G_tree):
+                if node not in parent_of:
+                    pos[node] = (0.5, 0)
+                else:
+                    parent = parent_of[node]
+                    x_parent, y_parent = pos[parent]
+        
+                    siblings = [n for n, p in parent_of.items() if p == parent]
+                    idx = siblings.index(node)
+                    n_siblings = len(siblings)
+        
+                    width = 0.6
+                    start_x = x_parent - width / 2
+                    dx = width / (n_siblings - 1) if n_siblings > 1 else 0
+        
+                    pos[node] = (start_x + idx * dx, y_parent - y_gap)
+        
+            # --- 3. Dibujar ---
+            fig, ax = plt.subplots(figsize=(16, 9))
+        
+            nx.draw_networkx_edges(
+                G_tree, pos,
+                arrows=True,
+                arrowstyle='-|>',
+                arrowsize=10,
+                edge_color='black',
+                ax=ax
             )
-    
-        ax.axis('off')
-        st.pyplot(fig)
+        
+            for n in G_tree.nodes():
+                x, y = pos[n]
+                ax.text(
+                    x, y,
+                    node_labels[n],
+                    ha='center', va='center',
+                    fontsize=10, fontweight='bold',
+                    bbox=dict(
+                        boxstyle="round,pad=0.6,rounding_size=0.3",
+                        facecolor=node_colors[n],
+                        edgecolor='black'
+                    )
+                )
+        
+            ax.axis('off')
+            st.pyplot(fig)
 
 
     # --------------------------
