@@ -332,127 +332,127 @@ else:
     
     
     
-    # --------------------------
-    # Ejecutar A* y mostrar resultados
-    # --------------------------
-    if st.button("Ejecutar A*"):
-        result = a_star_full(G, start, goal)
+    # # --------------------------
+    # # Ejecutar A* y mostrar resultados
+    # # --------------------------
+    # if st.button("Ejecutar A*"):
+    #     result = a_star_full(G, start, goal)
     
-        # # Tabla de expansiones
-        # if result["log"]:
-        #     df_log = pd.DataFrame(result["log"], columns=["step","current","g","h","f","neighbors","open_set","closed_set"])
-        #     solution_set = set(result["path"])
-        #     def highlight_solution(row):
-        #         if row["current"] in solution_set:
-        #             return ['background-color: #c4f7c4'] * len(row)
-        #         return [''] * len(row)
+    #     # # Tabla de expansiones
+    #     # if result["log"]:
+    #     #     df_log = pd.DataFrame(result["log"], columns=["step","current","g","h","f","neighbors","open_set","closed_set"])
+    #     #     solution_set = set(result["path"])
+    #     #     def highlight_solution(row):
+    #     #         if row["current"] in solution_set:
+    #     #             return ['background-color: #c4f7c4'] * len(row)
+    #     #         return [''] * len(row)
     
-        #     st.subheader("Registro completo de expansión")
-        #     st.dataframe(
-        #         df_log.style.apply(highlight_solution, axis=1)
-        #               .format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"})
-        #     )
+    #     #     st.subheader("Registro completo de expansión")
+    #     #     st.dataframe(
+    #     #         df_log.style.apply(highlight_solution, axis=1)
+    #     #               .format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"})
+    #     #     )
     
-        # Camino óptimo
-        if result["path"]:
-            st.subheader("Camino óptimo")
-            final_rows = [{"node": n, "g": result["g"][n], "h": result["h"][n], "f": result["f"][n]} for n in result["path"]]
-            st.table(pd.DataFrame(final_rows).style.format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"}))
+    #     # Camino óptimo
+    #     if result["path"]:
+    #         st.subheader("Camino óptimo")
+    #         final_rows = [{"node": n, "g": result["g"][n], "h": result["h"][n], "f": result["f"][n]} for n in result["path"]]
+    #         st.table(pd.DataFrame(final_rows).style.format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"}))
     
-        # Grafo final
-        st.subheader("Grafo")
-        st.write("En color azul se muestra el camino escogido:")
-        pos_fixed = {
-            "A": (0, 2.7), "B": (1, 3), "C": (2, 3), "F": (0.2, 1.7),
-            "D": (2.2, 2), "E": (1, 1), "G": (0, 0), "H": (2.1, 0)
-        }
-        fig, ax = plt.subplots(figsize=(7,6))
-        # nx.draw_networkx_nodes(G, pos_fixed, node_size=800, ax=ax)
-        nx.draw_networkx_nodes(
-            G, pos_fixed,
-            node_size=800,
-            node_color="white",   # relleno blanco
-            edgecolors="black",   # borde negro
-            linewidths=2,
-            ax=ax
-        )
+    #     # Grafo final
+    #     st.subheader("Grafo")
+    #     st.write("En color azul se muestra el camino escogido:")
+    #     pos_fixed = {
+    #         "A": (0, 2.7), "B": (1, 3), "C": (2, 3), "F": (0.2, 1.7),
+    #         "D": (2.2, 2), "E": (1, 1), "G": (0, 0), "H": (2.1, 0)
+    #     }
+    #     fig, ax = plt.subplots(figsize=(7,6))
+    #     # nx.draw_networkx_nodes(G, pos_fixed, node_size=800, ax=ax)
+    #     nx.draw_networkx_nodes(
+    #         G, pos_fixed,
+    #         node_size=800,
+    #         node_color="white",   # relleno blanco
+    #         edgecolors="black",   # borde negro
+    #         linewidths=2,
+    #         ax=ax
+    #     )
     
-        nx.draw_networkx_labels(G, pos_fixed, font_weight='bold', ax=ax)
+    #     nx.draw_networkx_labels(G, pos_fixed, font_weight='bold', ax=ax)
     
-        edge_colors = []
-        widths = []
-        for u,v,attrs in G.edges(data=True):
-            col = attrs.get('color','gray').lower()
-            if col.startswith('v'): edge_colors.append('green')
-            elif col.startswith('n'): edge_colors.append('orange')
-            elif col.startswith('r'): edge_colors.append('red')
-            else: edge_colors.append('gray')
-            widths.append(2.0)
+    #     edge_colors = []
+    #     widths = []
+    #     for u,v,attrs in G.edges(data=True):
+    #         col = attrs.get('color','gray').lower()
+    #         if col.startswith('v'): edge_colors.append('green')
+    #         elif col.startswith('n'): edge_colors.append('orange')
+    #         elif col.startswith('r'): edge_colors.append('red')
+    #         else: edge_colors.append('gray')
+    #         widths.append(2.0)
     
-        # nx.draw_networkx_edges(G, pos_fixed, edge_color=edge_colors, width=widths,
-        #                        arrows=True, arrowstyle='-|>', arrowsize=10,
-        #                        connectionstyle='arc3,rad=0.2', ax=ax)
-        nx.draw_networkx_edges(
-            G, pos_fixed,
-            edge_color=edge_colors,
-            width=widths,
-            arrows=True,
-            arrowstyle='-|>',
-            arrowsize=10,
-            connectionstyle='arc3,rad=0.2',
-            ax=ax,
-            min_source_margin=15,   # evita que la flecha se meta dentro del nodo origen
-            min_target_margin=15    # evita que la flecha se meta dentro del nodo destino
-        )
+    #     # nx.draw_networkx_edges(G, pos_fixed, edge_color=edge_colors, width=widths,
+    #     #                        arrows=True, arrowstyle='-|>', arrowsize=10,
+    #     #                        connectionstyle='arc3,rad=0.2', ax=ax)
+    #     nx.draw_networkx_edges(
+    #         G, pos_fixed,
+    #         edge_color=edge_colors,
+    #         width=widths,
+    #         arrows=True,
+    #         arrowstyle='-|>',
+    #         arrowsize=10,
+    #         connectionstyle='arc3,rad=0.2',
+    #         ax=ax,
+    #         min_source_margin=15,   # evita que la flecha se meta dentro del nodo origen
+    #         min_target_margin=15    # evita que la flecha se meta dentro del nodo destino
+    #     )
     
     
-        edge_labels = {(u,v): f"{attrs['km']}km/{attrs['cost_state']}" for u,v,attrs in G.edges(data=True)}
-        nx.draw_networkx_edge_labels(G, pos_fixed, edge_labels=edge_labels, font_size=8, ax=ax)
+    #     edge_labels = {(u,v): f"{attrs['km']}km/{attrs['cost_state']}" for u,v,attrs in G.edges(data=True)}
+    #     nx.draw_networkx_edge_labels(G, pos_fixed, edge_labels=edge_labels, font_size=8, ax=ax)
         
     
-        # if result["path"] and len(result["path"])>1:
-        #     path_edges = list(zip(result["path"][:-1], result["path"][1:]))
-        #     nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='blue', width=4.0,
-        #                            arrows=True, arrowstyle='-|>', arrowsize=10,
-        #                            connectionstyle='arc3,rad=0.2', ax=ax)
+    #     # if result["path"] and len(result["path"])>1:
+    #     #     path_edges = list(zip(result["path"][:-1], result["path"][1:]))
+    #     #     nx.draw_networkx_edges(G, pos_fixed, edgelist=path_edges, edge_color='blue', width=4.0,
+    #     #                            arrows=True, arrowstyle='-|>', arrowsize=10,
+    #     #                            connectionstyle='arc3,rad=0.2', ax=ax)
             
-        if result["path"] and len(result["path"])>1:
-            path_edges = list(zip(result["path"][:-1], result["path"][1:]))
-            nx.draw_networkx_edges(
-                G, pos_fixed, 
-                edgelist=path_edges, 
-                edge_color='blue', 
-                width=4.0,
-                arrows=True, 
-                arrowstyle='-|>', 
-                arrowsize=16,
-                connectionstyle='arc3,rad=0.2', 
-                ax=ax,
-                min_source_margin=15,  # evita solapamiento con el nodo de origen
-                min_target_margin=15   # evita solapamiento con el nodo destino
-            )
+    #     if result["path"] and len(result["path"])>1:
+    #         path_edges = list(zip(result["path"][:-1], result["path"][1:]))
+    #         nx.draw_networkx_edges(
+    #             G, pos_fixed, 
+    #             edgelist=path_edges, 
+    #             edge_color='blue', 
+    #             width=4.0,
+    #             arrows=True, 
+    #             arrowstyle='-|>', 
+    #             arrowsize=16,
+    #             connectionstyle='arc3,rad=0.2', 
+    #             ax=ax,
+    #             min_source_margin=15,  # evita solapamiento con el nodo de origen
+    #             min_target_margin=15   # evita solapamiento con el nodo destino
+    #         )
     
-        # legend_elements = [
-        #     Line2D([0], [0], color='green', lw=2, label='Verde (coste bajo)'),
-        #     Line2D([0], [0], color='orange', lw=2, label='Naranja (coste medio)'),
-        #     Line2D([0], [0], color='red', lw=2, label='Rojo (coste alto)'),
-        #     Line2D([0], [0], color='blue', lw=4, label='Camino óptimo'),
-        # ]
+    #     # legend_elements = [
+    #     #     Line2D([0], [0], color='green', lw=2, label='Verde (coste bajo)'),
+    #     #     Line2D([0], [0], color='orange', lw=2, label='Naranja (coste medio)'),
+    #     #     Line2D([0], [0], color='red', lw=2, label='Rojo (coste alto)'),
+    #     #     Line2D([0], [0], color='blue', lw=4, label='Camino óptimo'),
+    #     # ]
         
-        # ax.legend(handles=legend_elements, loc='lower left')
+    #     # ax.legend(handles=legend_elements, loc='lower left')
             
-        ax.axis('off')
-        st.pyplot(fig)
+    #     ax.axis('off')
+    #     st.pyplot(fig)
     
-        # Árbol de expansión
-        if result["path"]:
-            st.subheader("Árbol de expansión")
-            st.write("En verde se muestran los nodos finales escogidos")
-            draw_decision_tree(
-                solution_path=result["path"],
-                expansion_log=result["log"],
-                g_vals=result["g"],
-                h_vals=result["h"],
-                f_vals=result["f"],
-                all_nodes=result["all_nodes"]
-            )
+    #     # Árbol de expansión
+    #     if result["path"]:
+    #         st.subheader("Árbol de expansión")
+    #         st.write("En verde se muestran los nodos finales escogidos")
+    #         draw_decision_tree(
+    #             solution_path=result["path"],
+    #             expansion_log=result["log"],
+    #             g_vals=result["g"],
+    #             h_vals=result["h"],
+    #             f_vals=result["f"],
+    #             all_nodes=result["all_nodes"]
+    #         )
