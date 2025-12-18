@@ -148,12 +148,12 @@ else:
         colors = {}
         id_map = {}
     
-        # Crear nodos únicos
+        # Crear nodos únicos y asignar label con iteración
         for i, node in enumerate(expansions):
             node_id = f"{node['state']}_{i}"
             id_map[id(node)] = node_id
             G_tree.add_node(node_id)
-            labels[node_id] = f"{node['state']}\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
+            labels[node_id] = f"{node['state']} ({i})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
             colors[node_id] = "lightgray"
     
         # Crear aristas padre -> hijo
@@ -168,23 +168,42 @@ else:
             current = current["parent"]
     
         # ----------------------
-        # Posición con Graphviz (árbol centrado)
+        # Posición manual jerárquica
         # ----------------------
-        try:
-            pos = nx.nx_agraph.graphviz_layout(G_tree, prog='dot')
-        except:
-            # fallback manual si no tienes pygraphviz
-            levels = defaultdict(list)
-            root = list(G_tree.nodes())[0]
-            for node in G_tree.nodes():
-                depth = nx.shortest_path_length(G_tree, root, node)
-                levels[depth].append(node)
-            pos = {}
-            for depth, nodes in levels.items():
-                for i, n in enumerate(nodes):
-                    pos[n] = (i*3 - len(nodes), -depth*3)
+        levels = defaultdict(list)
+        root = id_map[id(expansions[0])]
+        queue = [(root, 0)]
+        visited = set()
+        parent_children = defaultdict(list)
     
+        # BFS para niveles y asignar hijos
+        for node in expansions:
+            if node["parent"]:
+                parent_children[id_map[id(node["parent"])]].append(id_map[id(node)])
+    
+        y_gap = 3
+        x_gap = 3
+        pos = {}
+    
+        def assign_pos(node, x_center, y_level):
+            children = parent_children.get(node, [])
+            n = len(children)
+            if n == 0:
+                pos[node] = (x_center, -y_level * y_gap)
+                return
+            # repartir horizontalmente
+            width = (n-1) * x_gap
+            for i, child in enumerate(children):
+                x_child = x_center - width/2 + i * x_gap
+                pos[child] = (x_child, - (y_level+1) * y_gap)
+                assign_pos(child, x_child, y_level+1)
+    
+        pos[root] = (0, 0)
+        assign_pos(root, 0, 0)
+    
+        # ----------------------
         # Dibujar
+        # ----------------------
         fig, ax = plt.subplots(figsize=(18, 10))
         nx.draw_networkx_edges(G_tree, pos, arrows=True, arrowstyle='-|>', arrowsize=12, ax=ax)
         for n, (x, y) in pos.items():
@@ -192,6 +211,8 @@ else:
                     bbox=dict(boxstyle="round,pad=0.4", facecolor=colors[n], edgecolor="black"))
         ax.axis("off")
         st.pyplot(fig)
+
+    
 
 
     
