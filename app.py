@@ -87,45 +87,37 @@ else:
     # Función A* clásica
     # --------------------------
     def a_star(graph, start, goal, heuristic_fn):
-        open_heap = [] # La frontera
-        counter = 0    # Para desempatar en el heap
-        expansions = [] # Nodos que REALMENTE se expandieron
+        open_heap = []
+        counter = 0    
+        expansions = [] 
         
-        # El contador de iteraciones de EXPANSIÓN
-        expansion_counter = 0
+        # Este contador marcará el orden de APARICIÓN de cada nodo
+        node_creation_counter = 0
 
-        # Nodo raíz
+        # Nodo raíz (es el primero en aparecer: 0)
         start_node = {
             "state": start,
             "g": 0,
             "h": heuristic_fn(start),
             "f": heuristic_fn(start),
             "parent": None,
-            "iteration": expansion_counter, # La raíz es la 0
+            "iteration": node_creation_counter, 
             "children": [] 
         }
+        node_creation_counter += 1
 
-        # Meter a la frontera: (f, counter, nodo_a_expandir)
         heapq.heappush(open_heap, (start_node["f"], counter, start_node))
         counter += 1
-
         solution_node = None
 
         while open_heap:
-            # 1. Elegimos el mejor de TODA la frontera
             f_val, _, current = heapq.heappop(open_heap)
-            
-            # Asignamos el orden de expansión actual
-            current["iteration"] = expansion_counter
-            expansion_counter += 1
             expansions.append(current)
 
-            # 2. ¿Es el objetivo?
             if current["state"] == goal:
                 solution_node = current
                 break
 
-            # 3. Expandir TODOS sus hijos
             neighbors = sorted([v for _, v, _ in graph.out_edges(current["state"], data=True)])
             for neighbor in neighbors:
                 attrs = graph.get_edge_data(current["state"], neighbor)
@@ -139,12 +131,12 @@ else:
                     "h": h_new,
                     "f": f_new,
                     "parent": current,
-                    "iteration": None, # Aún no se expande, solo se genera
+                    "iteration": node_creation_counter, # Se le asigna su número al nacer
                     "children": []
                 }
-                current["children"].append(child)
+                node_creation_counter += 1 # Aumentamos para el siguiente
                 
-                # Se añaden a la frontera global
+                current["children"].append(child)
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
 
@@ -170,19 +162,19 @@ else:
 
         # 2. Crear nodos y definir etiquetas/colores
         for i, node in enumerate(all_nodes):
-            node_id = f"{node['state']}_{i}"
-            id_map[id(node)] = node_id
-            G_tree.add_node(node_id)
-            
-            # Etiqueta: Si no tiene iteración, es que se quedó en la frontera
-            iter_info = f"({node['iteration']})" if node['iteration'] is not None else "(frontera)"
-            labels[node_id] = f"{node['state']} {iter_info}\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
-            
-            # Color por defecto (nodos de la frontera)
-            colors[node_id] = "#ffffff" 
-            if node['iteration'] is not None:
-                colors[node_id] = "#e0e0e0" # Gris para expandidos
-
+                    node_id = f"{node['state']}_{i}"
+                    id_map[id(node)] = node_id
+                    G_tree.add_node(node_id)
+                    
+                    # Ahora todos tienen número, no habrá "(frontera)"
+                    labels[node_id] = f"{node['state']} ({node['iteration']})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
+                    
+                    # Color: Diferenciamos si el nodo llegó a expandirse (está en la lista expansions)
+                    if node in expansions:
+                        colors[node_id] = "#e0e0e0" # Gris: Expandido
+                    else:
+                        colors[node_id] = "#ffffff" # Blanco: Se quedó en la frontera
+                        
         # 3. Crear aristas basadas en la estructura del árbol
         for node in all_nodes:
             if node["parent"] and id(node["parent"]) in id_map:
