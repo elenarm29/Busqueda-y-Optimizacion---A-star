@@ -87,35 +87,45 @@ else:
     # Función A* clásica
     # --------------------------
     def a_star(graph, start, goal, heuristic_fn):
-        open_heap = []
-        counter = 0
-        expansions = []
-        iter_counter = 0
+        open_heap = [] # La frontera
+        counter = 0    # Para desempatar en el heap
+        expansions = [] # Nodos que REALMENTE se expandieron
+        
+        # El contador de iteraciones de EXPANSIÓN
+        expansion_counter = 0
 
+        # Nodo raíz
         start_node = {
             "state": start,
             "g": 0,
             "h": heuristic_fn(start),
             "f": heuristic_fn(start),
             "parent": None,
-            "iteration": iter_counter
+            "iteration": expansion_counter, # La raíz es la 0
+            "children": [] 
         }
-        iter_counter += 1
 
+        # Meter a la frontera: (f, counter, nodo_a_expandir)
         heapq.heappush(open_heap, (start_node["f"], counter, start_node))
         counter += 1
 
         solution_node = None
 
         while open_heap:
-            _, _, current = heapq.heappop(open_heap)
+            # 1. Elegimos el mejor de TODA la frontera
+            f_val, _, current = heapq.heappop(open_heap)
+            
+            # Asignamos el orden de expansión actual
+            current["iteration"] = expansion_counter
+            expansion_counter += 1
             expansions.append(current)
 
+            # 2. ¿Es el objetivo?
             if current["state"] == goal:
                 solution_node = current
                 break
 
-            # Expandir todos los hijos alfabéticamente
+            # 3. Expandir TODOS sus hijos
             neighbors = sorted([v for _, v, _ in graph.out_edges(current["state"], data=True)])
             for neighbor in neighbors:
                 attrs = graph.get_edge_data(current["state"], neighbor)
@@ -129,10 +139,12 @@ else:
                     "h": h_new,
                     "f": f_new,
                     "parent": current,
-                    "iteration": iter_counter
+                    "iteration": None, # Aún no se expande, solo se genera
+                    "children": []
                 }
-                iter_counter += 1
-
+                current["children"].append(child)
+                
+                # Se añaden a la frontera global
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
 
@@ -147,51 +159,78 @@ else:
         colors = {}
         id_map = {}
 
-        for i, node in enumerate(expansions):
+        # 1. Recopilar TODOS los nodos que deben aparecer (expandidos + sus hijos)
+        all_nodes = []
+        for e in expansions:
+            if e not in all_nodes:
+                all_nodes.append(e)
+            for child in e["children"]:
+                if child not in all_nodes:
+                    all_nodes.append(child)
+
+        # 2. Crear nodos y definir etiquetas/colores
+        for i, node in enumerate(all_nodes):
             node_id = f"{node['state']}_{i}"
             id_map[id(node)] = node_id
             G_tree.add_node(node_id)
-            labels[node_id] = f"{node['state']} ({node['iteration']})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
-            colors[node_id] = "lightgray"
+            
+            # Etiqueta: Si no tiene iteración, es que se quedó en la frontera
+            iter_info = f"({node['iteration']})" if node['iteration'] is not None else "(frontera)"
+            labels[node_id] = f"{node['state']} {iter_info}\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
+            
+            # Color por defecto (nodos de la frontera)
+            colors[node_id] = "#ffffff" 
+            if node['iteration'] is not None:
+                colors[node_id] = "#e0e0e0" # Gris para expandidos
 
-        for node in expansions:
-            if node["parent"]:
+        # 3. Crear aristas basadas en la estructura del árbol
+        for node in all_nodes:
+            if node["parent"] and id(node["parent"]) in id_map:
                 G_tree.add_edge(id_map[id(node["parent"])], id_map[id(node)])
 
+        # 4. Colorear el camino de la solución en verde
         current = solution_node
         while current:
-            colors[id_map[id(current)]] = "lightgreen"
+            if id(current) in id_map:
+                colors[id_map[id(current)]] = "#90ee90" # Verde claro
             current = current["parent"]
 
+        # 5. Lógica de posicionamiento (Layout de árbol)
         parent_children = defaultdict(list)
-        for node in expansions:
+        for node in all_nodes:
             if node["parent"]:
                 parent_children[id_map[id(node["parent"])]].append(id_map[id(node)])
 
         pos = {}
-        root = id_map[id(expansions[0])]
+        root_id = id_map[id(expansions[0])]
 
-        def assign_pos(node, x_center, y_level):
-            children = sorted(parent_children.get(node, []))  # hijos alfabéticos
-            n = len(children)
-            if n == 0:
-                pos[node] = (x_center, -y_level * 3)
+        def assign_pos(n_id, x_center, y_level, width_alloc):
+            pos[n_id] = (x_center, -y_level * 3)
+            children = sorted(parent_children.get(n_id, []))
+            if not children:
                 return
-            width = (n-1) * 3
-            pos[node] = (x_center, -y_level * 3)
-            for i, child in enumerate(children):
-                x_child = x_center - width/2 + i * 3
-                assign_pos(child, x_child, y_level+1)
+            
+            n = len(children)
+            next_width = width_alloc / n
+            start_x = x_center - (width_alloc / 2) + (next_width / 2)
+            
+            for i, child_id in enumerate(children):
+                assign_pos(child_id, start_x + i * next_width, y_level + 1, next_width)
 
-        assign_pos(root, 0, 0)  # nodo inicial centrado arriba
+        assign_pos(root_id, 0, 0, 20.0)
 
-        fig, ax = plt.subplots(figsize=(18,10))
-        nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=10, ax=ax)
-        for n, (x, y) in pos.items():
-            ax.text(x, y, labels[n], ha='center', va='center', fontsize=10,
-                    bbox=dict(boxstyle="round,pad=0.4", facecolor=colors[n], edgecolor="black"))
+        # 6. Dibujar
+        fig, ax = plt.subplots(figsize=(20, 12))
+        nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=12, edge_color="gray", ax=ax)
+        
+        for n_id, (x, y) in pos.items():
+            ax.text(x, y, labels[n_id], ha='center', va='center', fontsize=9,
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor=colors[n_id], edgecolor="black", alpha=0.9))
+        
         ax.axis("off")
         st.pyplot(fig)
+
+    
 
     # --------------------------
     # Ejecutar
