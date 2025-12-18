@@ -298,6 +298,6 @@ else:
 
             # Árbol de expansión
             st.subheader("Árbol de expansión")
-            st.write("En verde se muestran los nodos finales escogidos.")
-            st.write("(la imagen se puede ampliar pulsando en su esquina superior derecha)")
+            st.write("En verde se muestran los nodos finales escogidos. En gris, los nodos expandidos.")
+            st.write("(La imagen se puede ampliar pulsando en su esquina superior derecha)")
             draw_expansion_tree(solution, expansions)
