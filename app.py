@@ -249,67 +249,6 @@ else:
         st.pyplot(fig)
 
 
-    # --------------------------
-    # Ejecutar A* y mostrar resultados
-    # --------------------------
-    if st.button("Ejecutar A*"):
-        result = a_star_full(G, start, goal)
-
-        # Camino óptimo
-        if result["path"]:
-            st.subheader("Camino óptimo")
-            final_rows = [{"node": n, "g": result["g"][n], "h": result["h"][n], "f": result["f"][n]} for n in result["path"]]
-            st.table(pd.DataFrame(final_rows).style.format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"}))
-
-        # Grafo final
-        st.subheader("Grafo")
-        st.write("En color azul se muestra el camino escogido:")
-        pos_fixed = { "A": (0, 2.7), "B": (1, 3), "C": (2, 3), "F": (0.2, 1.7), "D": (2.2, 2),
-                      "E": (1, 1), "G": (0, 0), "H": (2.1, 0) }
-        fig, ax = plt.subplots(figsize=(7,6))
-        nx.draw_networkx_nodes(G, pos_fixed, node_size=800, node_color="white", edgecolors="black", linewidths=2, ax=ax)
-        nx.draw_networkx_labels(G, pos_fixed, font_weight='bold', ax=ax)
-
-        edge_colors = []
-        widths = []
-        for u,v,attrs in G.edges(data=True):
-            col = attrs.get('color','gray').lower()
-            if col.startswith('v'): edge_colors.append('green')
-            elif col.startswith('n'): edge_colors.append('orange')
-            elif col.startswith('r'): edge_colors.append('red')
-            else: edge_colors.append('gray')
-            widths.append(2.0)
-
-        if result["path"] and len(result["path"])>1:
-            path_edges = list(zip(result["path"][:-1], result["path"][1:]))
-            nx.draw_networkx_edges(
-                G, pos_fixed, edgelist=path_edges, edge_color='blue', width=4.0,
-                arrows=True, arrowstyle='-|>', arrowsize=16,
-                connectionstyle='arc3,rad=0.2',
-                ax=ax, min_source_margin=15, min_target_margin=15
-            )
-
-        nx.draw_networkx_edges(G, pos_fixed, edge_color=edge_colors, width=widths,
-                               arrows=True, arrowstyle='-|>', arrowsize=10,
-                               connectionstyle='arc3,rad=0.2', ax=ax,
-                               min_source_margin=15, min_target_margin=15)
-        edge_labels = {(u,v): f"{attrs['km']}km/{attrs['cost_state']}" for u,v,attrs in G.edges(data=True)}
-        nx.draw_networkx_edge_labels(G, pos_fixed, edge_labels=edge_labels, font_size=8, ax=ax)
-        ax.axis('off')
-        st.pyplot(fig)
-
-        # Árbol de expansión
-        if result["path"]:
-            st.subheader("Árbol de expansión")
-            st.write("En verde se muestran los nodos finales escogidos")
-            draw_decision_tree(
-                solution_path=result["path"],
-                expansion_log=result["log"],
-                g_vals=result["g"],
-                h_vals=result["h"],
-                f_vals=result["f"],
-                all_nodes=result["all_nodes"]
-            )    
        
 
     # --------------------------
