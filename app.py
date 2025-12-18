@@ -1,3 +1,6 @@
+import os
+os.environ["STREAMLIT_WATCH_FILE"] = "false"
+
 # app.py
 import streamlit as st
 import heapq
