@@ -142,19 +142,7 @@ else:
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
 
-            
-
-
-
-
-            if current["state"] == goal:
-                solution_node = current
-                break
-
-
-
-            expansions.extend(children_nodes)
-
+    
         return solution_node, expansions
 
     # --------------------------
