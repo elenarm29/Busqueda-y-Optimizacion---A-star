@@ -149,103 +149,118 @@ else:
     # Árbol de expansión
     # --------------------------
     def draw_expansion_tree(solution_node, expansions):
-        # 1. Recopilar todos los nodos generados
-        all_nodes = []
-        for e in expansions:
-            if e not in all_nodes: all_nodes.append(e)
-            for child in e["children"]:
-                if child not in all_nodes: all_nodes.append(child)
-
-        # 2. Lógica de posicionamiento (usamos la misma que ya funcionaba bien)
-        parent_children = defaultdict(list)
-        node_data = {}
-        for i, node in enumerate(all_nodes):
-            n_id = f"{node['state']}_{i}"
-            node_data[n_id] = node
-            if node["parent"]:
-                # Buscamos el ID del padre en los nodos ya procesados
-                for prev_id, prev_node in node_data.items():
-                    if prev_node == node["parent"]:
-                        parent_children[prev_id].append(n_id)
-                        break
-
-        pos = {}
-        last_x_at_level = defaultdict(lambda: -1)
-        
-        def layout_tree(n_id, level):
-            children = sorted(parent_children.get(n_id, []))
-            for child in children:
-                layout_tree(child, level + 1)
-            if not children:
-                current_x = last_x_at_level[level] + 2.0
-            else:
-                avg_x_children = sum(pos[c][0] for c in children) / len(children)
-                current_x = max(avg_x_children, last_x_at_level[level] + 2.0)
-            pos[n_id] = (current_x, -level * 5)
-            last_x_at_level[level] = current_x
-
-        root_id = list(node_data.keys())[0]
-        layout_tree(root_id, 0)
-
-        # 3. Preparar aristas para Plotly
-        edge_x, edge_y = [], []
-        for p_id, children in parent_children.items():
-            for c_id in children:
-                edge_x += [pos[p_id][0], pos[c_id][0], None]
-                edge_y += [pos[p_id][1], pos[c_id][1], None]
-
-        # 4. Preparar nodos para Plotly
-        node_x, node_y, node_text, node_color, node_hover = [], [], [], [], []
-        
-        # Identificar camino solución para colorear
-        sol_path_nodes = []
-        curr = solution_node
-        while curr:
-            sol_path_nodes.append(curr)
-            curr = curr["parent"]
-
-        for n_id, (x, y) in pos.items():
-            node = node_data[n_id]
-            node_x.append(x)
-            node_y.append(y)
-            node_text.append(f"<b>{node['state']}</b>")
+            # 1. Recopilar todos los nodos
+            all_nodes = []
+            for e in expansions:
+                if e not in all_nodes: all_nodes.append(e)
+                for child in e["children"]:
+                    if child not in all_nodes: all_nodes.append(child)
+    
+            # 2. Lógica de posicionamiento (La misma que evita superposiciones)
+            parent_children = defaultdict(list)
+            node_data = {}
+            for i, node in enumerate(all_nodes):
+                n_id = f"{node['state']}_{i}"
+                node_data[n_id] = node
+                if node["parent"]:
+                    for prev_id, prev_node in node_data.items():
+                        if prev_node == node["parent"]:
+                            parent_children[prev_id].append(n_id)
+                            break
+    
+            pos = {}
+            last_x_at_level = defaultdict(lambda: -1)
             
-            # Info detallada al pasar el ratón (Hover)
-            hover = (f"Nodo: {node['state']}<br>Iteración: {node['iteration']}<br>"
-                     f"g: {node['g']:.2f}<br>h: {node['h']:.2f}<br>f: {node['f']:.2f}")
-            node_hover.append(hover)
-
-            # Color
-            if node in sol_path_nodes: color = "#90ee90" # Verde
-            elif node in expansions: color = "#e0e0e0"   # Gris
-            else: color = "#ffffff"                      # Blanco
-            node_color.append(color)
-
-        # 5. Crear la figura interactiva
-        fig = go.Figure()
-
-        # Añadir aristas
-        fig.add_trace(go.Scatter(x=edge_x, y=edge_y, line=dict(width=1, color='#888'),
-                                 hoverinfo='none', mode='lines'))
-
-        # Añadir nodos
-        fig.add_trace(go.Scatter(x=node_x, y=node_y, mode='markers+text',
-                                 text=node_text, textposition="top center",
-                                 hoverinfo='text', hovertext=node_hover,
-                                 marker=dict(size=25, color=node_color, line=dict(width=2, color='black'))))
-
-        fig.update_layout(
-            title="Árbol de Expansión Interactivo (Usa la rueda del ratón para Zoom)",
-            showlegend=False,
-            hovermode='closest',
-            margin=dict(b=0, l=0, r=0, t=40),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=800 # Altura fija generosa
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+            # Aumentamos la separación para que quepan los textos dentro
+            sep_x = 3.5 
+            sep_y = 6.0
+    
+            def layout_tree(n_id, level):
+                children = sorted(parent_children.get(n_id, []))
+                for child in children:
+                    layout_tree(child, level + 1)
+                if not children:
+                    current_x = last_x_at_level[level] + sep_x
+                else:
+                    avg_x_children = sum(pos[c][0] for c in children) / len(children)
+                    current_x = max(avg_x_children, last_x_at_level[level] + sep_x)
+                pos[n_id] = (current_x, -level * sep_y)
+                last_x_at_level[level] = current_x
+    
+            root_id = list(node_data.keys())[0]
+            layout_tree(root_id, 0)
+    
+            # 3. Preparar elementos de Plotly
+            edge_x, edge_y = [], []
+            for p_id, children in parent_children.items():
+                for c_id in children:
+                    edge_x += [pos[p_id][0], pos[c_id][0], None]
+                    edge_y += [pos[p_id][1], pos[c_id][1], None]
+    
+            node_x, node_y, node_labels, node_color, node_hover = [], [], [], [], []
+            
+            sol_path_nodes = []
+            curr = solution_node
+            while curr:
+                sol_path_nodes.append(curr)
+                curr = curr["parent"]
+    
+            for n_id, (x, y) in pos.items():
+                node = node_data[n_id]
+                node_x.append(x)
+                node_y.append(y)
+                
+                # TEXTO DENTRO DEL NODO (g, h, f)
+                # Usamos etiquetas HTML para que se vea ordenado
+                display_text = (f"<b>{node['state']}</b> ({node['iteration']})<br>"
+                                f"g:{node['g']:.0f}<br>h:{node['h']:.0f}<br>f:{node['f']:.0f}")
+                node_labels.append(display_text)
+                
+                # Color según estado
+                if node in sol_path_nodes: color = "#90ee90" # Verde (Camino)
+                elif node in expansions: color = "#e0e0e0"   # Gris (Expandido)
+                else: color = "#ffffff"                      # Blanco (Frontera)
+                node_color.append(color)
+                
+                # Hover simplificado (opcional)
+                node_hover.append(f"Nodo {node['state']}")
+    
+            # 4. Crear Figura
+            fig = go.Figure()
+    
+            # Dibujar líneas de conexión
+            fig.add_trace(go.Scatter(x=edge_x, y=edge_y, line=dict(width=1.5, color='#555'),
+                                     hoverinfo='none', mode='lines'))
+    
+            # Dibujar los cuadrados
+            fig.add_trace(go.Scatter(
+                x=node_x, y=node_y,
+                mode='markers+text',
+                text=node_labels,
+                textposition="middle center",
+                textfont=dict(size=9, color='black'),
+                hoverinfo='text',
+                hovertext=node_hover,
+                marker=dict(
+                    symbol='square',
+                    size=55, # Tamaño grande para que quepa el texto
+                    color=node_color,
+                    line=dict(width=2, color='black')
+                )
+            ))
+    
+            fig.update_layout(
+                title="Árbol de Búsqueda A* (Interactivo: Zoom y Arrastre)",
+                showlegend=False,
+                margin=dict(b=20, l=20, r=20, t=60),
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                plot_bgcolor='white',
+                height=900,
+                dragmode='pan' # Por defecto permite arrastrar el mapa
+            )
+    
+            st.plotly_chart(fig, use_container_width=True)    
     
 
     # --------------------------
