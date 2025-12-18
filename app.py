@@ -82,20 +82,13 @@ else:
         st.caption("Heurística subestimada basada en el arco saliente más corto, multiplicando por el costo más barato.")
 
     # --------------------------
-    # Función A* simple
+    # Función A* completa, expandiendo todos los hijos
     # --------------------------
     def a_star(graph, start, goal, heuristic_fn):
-        """
-        A* clásico completo:
-        - Siempre expandimos el nodo de menor f.
-        - Todos los hijos se agregan al OPEN.
-        - Se evita expandir nodos cerrados (closed_set).
-        - Guardamos todas las expansiones para visualización.
-        """
         open_heap = []
         closed_set = set()
         counter = 0
-    
+
         start_node = {
             "state": start,
             "g": 0,
@@ -103,38 +96,34 @@ else:
             "f": heuristic_fn(start),
             "parent": None
         }
-    
+
         heapq.heappush(open_heap, (start_node["f"], counter, start_node))
         counter += 1
-    
+
         expansions = []
         solution_node = None
-    
+
         while open_heap:
-            # Sacamos el nodo con menor f
             f_current, _, current = heapq.heappop(open_heap)
-    
-            # Si ya está cerrado, lo saltamos
+
+            # Saltar si ya cerrado
             if current["state"] in closed_set:
                 continue
-    
-            # Marcamos como cerrado
+
             closed_set.add(current["state"])
-    
-            # Guardamos la expansión
             expansions.append(current)
-    
+
             # Condición de parada
             if current["state"] == goal:
                 solution_node = current
                 break
-    
-            # EXPANDIR TODOS LOS HIJOS
+
+            # --- EXPANDIR TODOS LOS HIJOS ---
             for _, neighbor, attrs in graph.out_edges(current["state"], data=True):
                 g_new = current["g"] + attrs["km"] * attrs["cost_state"]
                 h_new = heuristic_fn(neighbor)
                 f_new = g_new + h_new
-    
+
                 child = {
                     "state": neighbor,
                     "g": g_new,
@@ -142,85 +131,64 @@ else:
                     "f": f_new,
                     "parent": current
                 }
-    
-                # Todos los hijos van al OPEN
+
+                # TODOS los hijos se agregan al OPEN
                 heapq.heappush(open_heap, (f_new, counter, child))
                 counter += 1
-    
-        return solution_node, expansions
-    
 
-    
+        return solution_node, expansions
 
     # --------------------------
     # Dibujar árbol de expansión
     # --------------------------
     def draw_expansion_tree(solution_node, expansions):
-        import networkx as nx
-        import matplotlib.pyplot as plt
-        from collections import defaultdict
-    
         G_tree = nx.DiGraph()
         labels = {}
         colors = {}
         id_map = {}
-    
-        # Crear nodos únicos y asignar label con iteración
+
         for i, node in enumerate(expansions):
             node_id = f"{node['state']}_{i}"
             id_map[id(node)] = node_id
             G_tree.add_node(node_id)
             labels[node_id] = f"{node['state']} ({i})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
             colors[node_id] = "lightgray"
-    
-        # Crear aristas padre -> hijo
+
         for node in expansions:
             if node["parent"]:
                 G_tree.add_edge(id_map[id(node["parent"])], id_map[id(node)])
-    
-        # Marcar camino solución
+
         current = solution_node
         while current:
             colors[id_map[id(current)]] = "lightgreen"
             current = current["parent"]
-    
-        # ----------------------
-        # Posición manual jerárquica
-        # ----------------------
+
         levels = defaultdict(list)
         root = id_map[id(expansions[0])]
-        queue = [(root, 0)]
-        visited = set()
         parent_children = defaultdict(list)
-    
-        # BFS para niveles y asignar hijos
         for node in expansions:
             if node["parent"]:
                 parent_children[id_map[id(node["parent"])]].append(id_map[id(node)])
-    
+
         y_gap = 3
         x_gap = 3
         pos = {}
-    
+
         def assign_pos(node, x_center, y_level):
             children = parent_children.get(node, [])
             n = len(children)
             if n == 0:
                 pos[node] = (x_center, -y_level * y_gap)
                 return
-            # repartir horizontalmente
             width = (n-1) * x_gap
             for i, child in enumerate(children):
                 x_child = x_center - width/2 + i * x_gap
                 pos[child] = (x_child, - (y_level+1) * y_gap)
                 assign_pos(child, x_child, y_level+1)
-    
+
         pos[root] = (0, 0)
         assign_pos(root, 0, 0)
-    
-        # ----------------------
-        # Dibujar
-        # ----------------------
+
         fig, ax = plt.subplots(figsize=(18, 10))
         nx.draw_networkx_edges(G_tree, pos, arrows=True, arrowstyle='-|>', arrowsize=12, ax=ax)
         for n, (x, y) in pos.items():
@@ -229,11 +197,6 @@ else:
         ax.axis("off")
         st.pyplot(fig)
 
-    
-
-
-    
-
     # --------------------------
     # Ejecutar A* y mostrar resultados
     # --------------------------
@@ -241,7 +204,6 @@ else:
         solution, expansions = a_star(G, start, goal, h_fn)
 
         if solution:
-            # Camino óptimo
             st.subheader("Camino óptimo")
             path = []
             current = solution
@@ -253,7 +215,6 @@ else:
             final_rows = [{"node": n["state"], "g": n["g"], "h": n["h"], "f": n["f"]} for n in path]
             st.table(pd.DataFrame(final_rows).style.format({"g": "{:.2f}", "h": "{:.2f}", "f": "{:.2f}"}))
 
-            # Grafo final
             st.subheader("Grafo")
             st.write("En color azul se muestra el camino escogido:")
 
@@ -289,7 +250,6 @@ else:
             ax.axis('off')
             st.pyplot(fig)
 
-            # Árbol de expansión
             st.subheader("Árbol de expansión")
             st.write("En verde se muestran los nodos finales escogidos")
             draw_expansion_tree(solution, expansions)
