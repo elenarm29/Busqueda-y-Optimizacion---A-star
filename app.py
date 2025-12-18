@@ -4,7 +4,7 @@ import heapq
 import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.lines import Line2D
+from matplotlib.lines import Line2Df
 
 ### VAMOS A AÑADIR PRIMERO UNA PORTADA QUE PONGA LOS NOMBRES Y TODO  ###
 
@@ -29,7 +29,9 @@ if not st.session_state.start_app:
     st.subheader(actividad)
     st.write(master)
     st.write("Autores: " + ", ".join(autores))
-    st.button("Continuar al algoritmo", on_click=lambda: st.session_state.update({'start_app': True}))
+    if st.button("Continuar al algoritmo"):
+        st.session_state.start_app = True
+
 else:
     st.title("Algoritmo A*")
     st.write("Selecciona origen, destino y heurística")
