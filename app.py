@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from collections import defaultdict
 
+st.set_page_config(layout="wide")
+
 # -------------------------
 # Datos de portada
 # -------------------------
@@ -151,6 +153,7 @@ else:
             colors = {}
             id_map = {}
     
+            # 1. Recopilar nodos
             all_nodes = []
             for e in expansions:
                 if e not in all_nodes:
@@ -159,27 +162,27 @@ else:
                     if child not in all_nodes:
                         all_nodes.append(child)
     
+            # 2. Etiquetas y colores
             for i, node in enumerate(all_nodes):
                 node_id = f"{node['state']}_{i}"
                 id_map[id(node)] = node_id
                 G_tree.add_node(node_id)
                 labels[node_id] = f"{node['state']} ({node['iteration']})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
-                
-                if node in expansions:
-                    colors[node_id] = "#e0e0e0"
-                else:
-                    colors[node_id] = "#ffffff"
+                colors[node_id] = "#e0e0e0" if node in expansions else "#ffffff"
     
+            # 3. Aristas
             for node in all_nodes:
                 if node["parent"] and id(node["parent"]) in id_map:
                     G_tree.add_edge(id_map[id(node["parent"])], id_map[id(node)])
     
+            # 4. Color solución
             current = solution_node
             while current:
                 if id(current) in id_map:
                     colors[id_map[id(current)]] = "#90ee90"
                 current = current["parent"]
     
+            # 5. Posicionamiento (Lógica original recuperada)
             parent_children = defaultdict(list)
             for node in all_nodes:
                 if node["parent"]:
@@ -188,38 +191,33 @@ else:
             pos = {}
             root_id = id_map[id(expansions[0])]
     
-            # --- CAMBIO 1: Aumentamos el multiplicador de y_level para separar más las filas ---
             def assign_pos(n_id, x_center, y_level, width_alloc):
-                pos[n_id] = (x_center, -y_level * 5) # Antes era 3, ahora 5
+                pos[n_id] = (x_center, -y_level * 3)
                 children = sorted(parent_children.get(n_id, []))
                 if not children:
                     return
-                
                 n = len(children)
                 next_width = width_alloc / n
                 start_x = x_center - (width_alloc / 2) + (next_width / 2)
-                
                 for i, child_id in enumerate(children):
                     assign_pos(child_id, start_x + i * next_width, y_level + 1, next_width)
     
-            # --- CAMBIO 2: Aumentamos el width_alloc inicial para dar más espacio horizontal ---
-            assign_pos(root_id, 0, 0, 50.0) # Antes era 20.0, ahora 50.0
+            # Aumentamos el ancho inicial de 20 a 40 para el layout horizontal
+            assign_pos(root_id, 0, 0, 40.0)
     
-            # --- CAMBIO 3: Aumentamos drásticamente el figsize y ajustamos márgenes ---
-            # El ancho de 25-30 suele ser ideal para árboles complejos en Streamlit
-            fig, ax = plt.subplots(figsize=(30, 15)) 
-            
-            nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=15, edge_color="gray", ax=ax, alpha=0.6)
+            # 6. Dibujo expandido
+            # Al poner layout="wide", un figsize de 20 o 25 ya se verá enorme y claro
+            fig, ax = plt.subplots(figsize=(22, 10)) 
+            nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=12, edge_color="gray", ax=ax)
             
             for n_id, (x, y) in pos.items():
-                # Reducimos un pelín el fontsize para que el cuadro no sea tan gigante
-                ax.text(x, y, labels[n_id], ha='center', va='center', fontsize=8,
-                        bbox=dict(boxstyle="round,pad=0.2", facecolor=colors[n_id], edgecolor="black", alpha=0.9))
+                ax.text(x, y, labels[n_id], ha='center', va='center', fontsize=9,
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor=colors[n_id], edgecolor="black", alpha=0.9))
             
             ax.axis("off")
-            # --- CAMBIO 4: Usamos use_container_width para que Streamlit use todo el ancho posible ---
+            # Usamos el ancho del contenedor de Streamlit
             st.pyplot(fig, use_container_width=True)
-
+    
     
 
     # --------------------------
