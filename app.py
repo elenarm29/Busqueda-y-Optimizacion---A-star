@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from collections import defaultdict
 
-st.set_page_config(layout="wide")
 
 # -------------------------
 # Datos de portada
@@ -149,20 +148,15 @@ else:
     # --------------------------
     def draw_expansion_tree(solution_node, expansions):
             G_tree = nx.DiGraph()
-            labels = {}
-            colors = {}
-            id_map = {}
+            labels, colors, id_map = {}, {}, {}
     
-            # 1. Recopilar nodos
+            # 1. Recopilar todos los nodos
             all_nodes = []
             for e in expansions:
-                if e not in all_nodes:
-                    all_nodes.append(e)
+                if e not in all_nodes: all_nodes.append(e)
                 for child in e["children"]:
-                    if child not in all_nodes:
-                        all_nodes.append(child)
+                    if child not in all_nodes: all_nodes.append(child)
     
-            # 2. Etiquetas y colores
             for i, node in enumerate(all_nodes):
                 node_id = f"{node['state']}_{i}"
                 id_map[id(node)] = node_id
@@ -170,54 +164,66 @@ else:
                 labels[node_id] = f"{node['state']} ({node['iteration']})\ng={node['g']:.0f}\nh={node['h']:.0f}\nf={node['f']:.0f}"
                 colors[node_id] = "#e0e0e0" if node in expansions else "#ffffff"
     
-            # 3. Aristas
             for node in all_nodes:
                 if node["parent"] and id(node["parent"]) in id_map:
                     G_tree.add_edge(id_map[id(node["parent"])], id_map[id(node)])
     
-            # 4. Color solución
             current = solution_node
             while current:
-                if id(current) in id_map:
-                    colors[id_map[id(current)]] = "#90ee90"
+                if id(current) in id_map: colors[id_map[id(current)]] = "#90ee90"
                 current = current["parent"]
     
-            # 5. Posicionamiento (Lógica original recuperada)
+            # --- LÓGICA DE POSICIONAMIENTO ANTI-SUPERPOSICIÓN ---
+            pos = {}
             parent_children = defaultdict(list)
             for node in all_nodes:
                 if node["parent"]:
                     parent_children[id_map[id(node["parent"])]].append(id_map[id(node)])
     
-            pos = {}
-            root_id = id_map[id(expansions[0])]
-    
-            def assign_pos(n_id, x_center, y_level, width_alloc):
-                pos[n_id] = (x_center, -y_level * 3)
+            # Usamos un diccionario para saber cuál es la última posición X usada en cada nivel
+            # para que los nodos nunca se solapen horizontalmente
+            last_x_at_level = defaultdict(lambda: -1) 
+            
+            def layout_tree(n_id, level):
+                # 1. Recursión primero para los hijos
                 children = sorted(parent_children.get(n_id, []))
+                for child in children:
+                    layout_tree(child, level + 1)
+                
+                # 2. Calcular la X de este nodo
                 if not children:
-                    return
-                n = len(children)
-                next_width = width_alloc / n
-                start_x = x_center - (width_alloc / 2) + (next_width / 2)
-                for i, child_id in enumerate(children):
-                    assign_pos(child_id, start_x + i * next_width, y_level + 1, next_width)
+                    # Si es una hoja, lo ponemos a la derecha del anterior en su nivel
+                    current_x = last_x_at_level[level] + 1.5 # 1.5 es la separación mínima
+                else:
+                    # Si tiene hijos, lo centramos sobre sus hijos
+                    avg_x_children = sum(pos[c][0] for c in children) / len(children)
+                    # Pero aseguramos que no choque con el vecino de la izquierda
+                    current_x = max(avg_x_children, last_x_at_level[level] + 1.5)
+                
+                pos[n_id] = (current_x, -level * 4) # 4 es la separación vertical
+                last_x_at_level[level] = current_x
     
-            # Aumentamos el ancho inicial de 20 a 40 para el layout horizontal
-            assign_pos(root_id, 0, 0, 40.0)
+            root_id = id_map[id(expansions[0])]
+            layout_tree(root_id, 0)
     
-            # 6. Dibujo expandido
-            # Al poner layout="wide", un figsize de 20 o 25 ya se verá enorme y claro
-            fig, ax = plt.subplots(figsize=(22, 10)) 
-            nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=12, edge_color="gray", ax=ax)
+            # 3. Centrar el dibujo
+            min_x = min(p[0] for p in pos.values())
+            max_x = max(p[0] for p in pos.values())
+            for n_id in pos:
+                pos[n_id] = (pos[n_id][0] - (min_x + max_x)/2, pos[n_id][1])
+    
+            # 6. Dibujo con tamaño dinámico según el número de nodos
+            width_fig = max(15, len(last_x_at_level) * 4) # Se ensancha si hay muchos niveles
+            fig, ax = plt.subplots(figsize=(width_fig, 10))
+            
+            nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=15, edge_color="gray", ax=ax, alpha=0.5)
             
             for n_id, (x, y) in pos.items():
-                ax.text(x, y, labels[n_id], ha='center', va='center', fontsize=9,
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor=colors[n_id], edgecolor="black", alpha=0.9))
+                ax.text(x, y, labels[n_id], ha='center', va='center', fontsize=8,
+                        bbox=dict(boxstyle="round,pad=0.2", facecolor=colors[n_id], edgecolor="black", alpha=1.0))
             
             ax.axis("off")
-            # Usamos el ancho del contenedor de Streamlit
             st.pyplot(fig, use_container_width=True)
-    
     
 
     # --------------------------
