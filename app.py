@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from collections import defaultdict
 
-st.set_page_config(layout="wide")
 
 
 # -------------------------
@@ -297,6 +296,7 @@ else:
             ax.axis('off')
             st.pyplot(fig)
 
+            st.set_page_config(layout="wide")
             # Árbol de expansión
             st.subheader("Árbol de expansión")
             st.write("En verde se muestran los nodos finales escogidos")
