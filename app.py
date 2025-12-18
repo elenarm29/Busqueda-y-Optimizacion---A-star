@@ -212,7 +212,7 @@ else:
         assign_pos(root_id, 0, 0, 20.0)
 
         # 6. Dibujar
-        fig, ax = plt.subplots(figsize=(20, 12))
+        fig, ax = plt.subplots(figsize=(40, 24))
         nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=12, edge_color="gray", ax=ax)
         
         for n_id, (x, y) in pos.items():
