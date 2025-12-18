@@ -151,7 +151,6 @@ else:
             G_tree = nx.DiGraph()
             labels, colors, id_map = {}, {}, {}
     
-            # 1. Recopilar todos los nodos
             all_nodes = []
             for e in expansions:
                 if e not in all_nodes: all_nodes.append(e)
@@ -174,54 +173,62 @@ else:
                 if id(current) in id_map: colors[id_map[id(current)]] = "#90ee90"
                 current = current["parent"]
     
-            # --- LÓGICA DE POSICIONAMIENTO ANTI-SUPERPOSICIÓN ---
             pos = {}
             parent_children = defaultdict(list)
             for node in all_nodes:
                 if node["parent"]:
                     parent_children[id_map[id(node["parent"])]].append(id_map[id(node)])
     
-            # Usamos un diccionario para saber cuál es la última posición X usada en cada nivel
-            # para que los nodos nunca se solapen horizontalmente
+            # --- CÁLCULO DE ESCALADO DINÁMICO ---
+            # Contamos cuántos nodos hay por nivel para ver la densidad
+            level_counts = defaultdict(int)
+            def count_levels(n_id, level):
+                level_counts[level] += 1
+                for child in parent_children.get(n_id, []):
+                    count_levels(child, level + 1)
+            
+            root_id = id_map[id(expansions[0])]
+            count_levels(root_id, 0)
+            
+            max_density = max(level_counts.values()) if level_counts else 1
+            
+            # Ajustamos tamaño de letra y separación según la densidad
+            # Si hay pocos nodos (densidad < 5), letra grande. Si hay muchos, letra pequeña.
+            dynamic_fontsize = max(6, min(10, 15 - max_density))
+            dynamic_spacing = max(1.2, min(2.5, 8 / max_density))
+            
             last_x_at_level = defaultdict(lambda: -1) 
             
             def layout_tree(n_id, level):
-                # 1. Recursión primero para los hijos
                 children = sorted(parent_children.get(n_id, []))
                 for child in children:
                     layout_tree(child, level + 1)
                 
-                # 2. Calcular la X de este nodo
                 if not children:
-                    # Si es una hoja, lo ponemos a la derecha del anterior en su nivel
-                    current_x = last_x_at_level[level] + 1.5 # 1.5 es la separación mínima
+                    current_x = last_x_at_level[level] + dynamic_spacing
                 else:
-                    # Si tiene hijos, lo centramos sobre sus hijos
                     avg_x_children = sum(pos[c][0] for c in children) / len(children)
-                    # Pero aseguramos que no choque con el vecino de la izquierda
-                    current_x = max(avg_x_children, last_x_at_level[level] + 1.5)
+                    current_x = max(avg_x_children, last_x_at_level[level] + dynamic_spacing)
                 
-                pos[n_id] = (current_x, -level * 4) # 4 es la separación vertical
+                pos[n_id] = (current_x, -level * 4)
                 last_x_at_level[level] = current_x
     
-            root_id = id_map[id(expansions[0])]
             layout_tree(root_id, 0)
     
-            # 3. Centrar el dibujo
             min_x = min(p[0] for p in pos.values())
             max_x = max(p[0] for p in pos.values())
             for n_id in pos:
                 pos[n_id] = (pos[n_id][0] - (min_x + max_x)/2, pos[n_id][1])
     
-            # 6. Dibujo con tamaño dinámico según el número de nodos
-            width_fig = max(15, len(last_x_at_level) * 4) # Se ensancha si hay muchos niveles
-            fig, ax = plt.subplots(figsize=(width_fig, 10))
+            width_fig = max(12, max_density * dynamic_spacing * 2)
+            fig, ax = plt.subplots(figsize=(width_fig, 8))
             
             nx.draw_networkx_edges(G_tree, pos, arrowstyle='-|>', arrowsize=15, edge_color="darkgray", ax=ax, alpha=0.5)
             
             for n_id, (x, y) in pos.items():
-                ax.text(x, y, labels[n_id], ha='center', va='center', fontsize=8,
-                        bbox=dict(boxstyle="round,pad=0.2", facecolor=colors[n_id], edgecolor="black", alpha=1.0))
+                ax.text(x, y, labels[n_id], ha='center', va='center', 
+                        fontsize=dynamic_fontsize, # <--- Letra dinámica
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor=colors[n_id], edgecolor="black", alpha=1.0))
             
             ax.axis("off")
             st.pyplot(fig, use_container_width=True)
