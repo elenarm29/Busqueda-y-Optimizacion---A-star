@@ -250,7 +250,7 @@ else:
             ))
     
             fig.update_layout(
-                title="Árbol de Búsqueda A* (Interactivo: Zoom y Arrastre)",
+                title="(El mapa es interactivo: puede hacer zoom y mover los nodos.)",
                 showlegend=False,
                 margin=dict(b=20, l=20, r=20, t=60),
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
@@ -335,5 +335,4 @@ else:
             # Árbol de expansión
             st.subheader("Árbol de expansión")
             st.write("En verde se muestran los nodos finales escogidos. En gris, los nodos expandidos.")
-            st.write("(La imagen se puede ampliar pulsando en su esquina superior derecha)")
             draw_expansion_tree(solution, expansions)
