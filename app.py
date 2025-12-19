@@ -97,7 +97,7 @@ else:
             return 0
         outgoing = [attrs["km"] for _, _, attrs in G.out_edges(nodo, data=True)]
         # Multiplicamos por 8 para que sea pesimista (sobreestime)
-        return min(outgoing) * 5 if outgoing else 0
+        return min(outgoing) * 10 if outgoing else 0
 
     
     if heur_option == "Costo uniforme (h=0)":
