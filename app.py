@@ -99,7 +99,7 @@ else:
     elif heur_option == "Heurística perfecta (distancia real)":
         h_fn = h_perfecta
         st.caption("Heurística ideal: Conoce el coste exacto al destino. A* irá directo.")
-    else
+    else:
         h_fn = h_informada
         st.caption("Heurística subestimada basada en el arco saliente más corto, multiplicando por el costo más barato.")
     
