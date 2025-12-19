@@ -67,7 +67,7 @@ else:
     # --------------------------
     heur_option = st.selectbox(
         "Selecciona una heurística",
-        ["Heurística propuesta: Arco más corto × costo más barato", "Costo uniforme (h=0)", "Heurística perfecta (distancia real)", "Heurística sobreestimada"]
+        ["Heurística propuesta: Arco más corto × costo más barato", "Costo uniforme (h=0)", "Heurística perfecta (distancia real)"]
     )
 
 
