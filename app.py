@@ -110,9 +110,9 @@ else:
 
         
         if has_green:
-            return 1000  # Valor exagerado para espantar al algoritmo
+            return 10000  # Valor exagerado para espantar al algoritmo
         elif has_orange:
-            return 100
+            return 1
         else:
             return 1     # Valor pequeño para atraerlo
             
