@@ -67,7 +67,7 @@ else:
     # --------------------------
     heur_option = st.selectbox(
         "Selecciona una heurística",
-        ["Arco más corto × costo más barato", "Costo uniforme (h=0)", "Heurística perfecta (distancia real)"]
+        ["Heurística propuesta: Arco más corto × costo más barato", "Costo uniforme (h=0)", "Heurística perfecta (distancia real)", "Heurística Sobreestimada"]
     )
 
 
@@ -92,6 +92,13 @@ else:
         except nx.NetworkXNoPath:
             return float('inf') # Si no hay camino, el coste es infinito
 
+    def h_sobreestimada(nodo):
+        if nodo == goal:
+            return 0
+        outgoing = [attrs["km"] for _, _, attrs in G.out_edges(nodo, data=True)]
+        # Multiplicamos por 8 para que sea pesimista (sobreestime)
+        return min(outgoing) * 8 if outgoing else 0
+
     
     if heur_option == "Costo uniforme (h=0)":
         h_fn = h_nula
@@ -99,6 +106,9 @@ else:
     elif heur_option == "Heurística perfecta (distancia real)":
         h_fn = h_perfecta
         st.caption("Heurística ideal: Conoce el coste exacto al destino. A* irá directo.")
+    elif heur_option == "Heurística Sobreestimada":
+        h_fn = h_sobrestimada
+        st.caption("Heurística Sobreestimada (FCC=8) (No admisible)")
     else:
         h_fn = h_informada
         st.caption("Heurística subestimada basada en el arco saliente más corto, multiplicando por el costo más barato.")
