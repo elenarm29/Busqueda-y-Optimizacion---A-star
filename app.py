@@ -99,8 +99,8 @@ else:
     #     # Multiplicamos por 8 para que sea pesimista (sobreestime)
     #     return min(outgoing) * 50 if outgoing else 0
     def h_sobreestimada(nodo):
-        if nodo == goal:
-            return 0
+        # if nodo == goal:
+        #     return 0
         
         # Buscamos si el nodo tiene alguna arista "Verde" saliendo de él
         # Si es así, le damos una penalización gigante (Sobreestimamos)
