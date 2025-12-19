@@ -114,7 +114,7 @@ else:
         elif has_orange:
             return 100
         else:
-            return 10     # Valor pequeño para atraerlo
+            return 1     # Valor pequeño para atraerlo
             
 
     
