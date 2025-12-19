@@ -67,8 +67,12 @@ else:
     # --------------------------
     heur_option = st.selectbox(
         "Selecciona una heurística",
-        ["Arco más corto × costo más barato", "Costo uniforme (h=0)"]
+        ["Arco más corto × costo más barato", "Costo uniforme (h=0)", "Heurística perfecta (distancia real)"]
     )
+
+
+
+  
 
     def h_informada(nodo):
         if nodo == goal:
@@ -79,13 +83,26 @@ else:
     def h_nula(nodo):
         return 0
     
+    def h_perfecta(nodo):
+        if nodo == goal:
+            return 0
+        try:
+            # Calculamos el coste real considerando km * cost_state
+            return nx.shortest_path_length(G, source=nodo, target=goal, weight=lambda u, v, d: d['km'] * d['cost_state'])
+        except nx.NetworkXNoPath:
+            return float('inf') # Si no hay camino, el coste es infinito
+
+    
     if heur_option == "Costo uniforme (h=0)":
         h_fn = h_nula
         st.caption("Heurística nula: el algoritmo se comporta como Dijkstra.")
-    else:
+    elif heur_option == "Heurística perfecta (distancia real)":
+        h_fn = h_perfecta
+        st.caption("Heurística ideal: Conoce el coste exacto al destino. A* irá directo.")
+    else
         h_fn = h_informada
         st.caption("Heurística subestimada basada en el arco saliente más corto, multiplicando por el costo más barato.")
-
+    
     # --------------------------
     # Función A* clásica
     # --------------------------
@@ -250,7 +267,7 @@ else:
             ))
     
             fig.update_layout(
-                title="(El mapa es interactivo: puede hacer zoom y mover los nodos.)",
+                title="(El mapa es interactivo: arriba a la derecha puede hacer zoom y mover los nodos.)",
                 showlegend=False,
                 margin=dict(b=20, l=20, r=20, t=60),
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
