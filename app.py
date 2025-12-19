@@ -98,23 +98,23 @@ else:
     #     outgoing = [attrs["km"] for _, _, attrs in G.out_edges(nodo, data=True)]
     #     # Multiplicamos por 8 para que sea pesimista (sobreestime)
     #     return min(outgoing) * 50 if outgoing else 0
-    def h_sobreestimada(nodo):
-        # if nodo == goal:
-        #     return 0
+    # def h_sobreestimada(nodo):
+    #     # if nodo == goal:
+    #     #     return 0
         
-        # Buscamos si el nodo tiene alguna arista "Verde" saliendo de él
-        # Si es así, le damos una penalización gigante (Sobreestimamos)
-        # Esto hará que el algoritmo evite el camino óptimo (que suele ser verde)
-        has_green = any(G[nodo][nbr].get('color') == 'Verde' for nbr in G[nodo])
-        has_orange = any(G[nodo][nbr].get('color') == 'Naranja' for nbr in G[nodo])
+    #     # Buscamos si el nodo tiene alguna arista "Verde" saliendo de él
+    #     # Si es así, le damos una penalización gigante (Sobreestimamos)
+    #     # Esto hará que el algoritmo evite el camino óptimo (que suele ser verde)
+    #     has_green = any(G[nodo][nbr].get('color') == 'Verde' for nbr in G[nodo])
+    #     has_orange = any(G[nodo][nbr].get('color') == 'Naranja' for nbr in G[nodo])
 
         
-        if has_green:
-            return 10000  # Valor exagerado para espantar al algoritmo
-        elif has_orange:
-            return 1
-        else:
-            return 1     # Valor pequeño para atraerlo
+    #     if has_green:
+    #         return 10000  # Valor exagerado para espantar al algoritmo
+    #     elif has_orange:
+    #         return 1
+    #     else:
+    #         return 1     # Valor pequeño para atraerlo
             
 
     
@@ -124,9 +124,9 @@ else:
     elif heur_option == "Heurística perfecta (distancia real)":
         h_fn = h_perfecta
         st.caption("Heurística ideal: Conoce el coste exacto al destino. A* irá directo.")
-    elif heur_option == "Heurística sobreestimada":
-        h_fn = h_sobreestimada
-        st.caption("Heurística Sobreestimada (FCC=8) (No admisible)")
+    # elif heur_option == "Heurística sobreestimada":
+    #     h_fn = h_sobreestimada
+    #     st.caption("Heurística Sobreestimada (FCC=8) (No admisible)")
     else:
         h_fn = h_informada
         st.caption("Heurística subestimada basada en el arco saliente más corto, multiplicando por el costo más barato.")
