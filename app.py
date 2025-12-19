@@ -104,7 +104,7 @@ else:
         # Tomamos la distancia máxima de todo el grafo (727) 
         # y la multiplicamos por el FCC máximo (8)
         # y lo multiplicamos por un factor para asegurar que h(n) > coste real
-        return 727 * 8 * 2
+        return 727 * 8 
     
     if heur_option == "Costo uniforme (h=0)":
         h_fn = h_nula
