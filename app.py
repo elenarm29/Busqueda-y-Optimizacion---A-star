@@ -262,7 +262,7 @@ else:
         ))
 
         fig.update_layout(
-            title="El gráfico es interactivo (arriba a la derecha de puede ampliar)",
+            title="El gráfico es interactivo (arriba a la derecha de puede ampliar y visualizar el árbol completo).",
             showlegend=False,
             margin=dict(b=20, l=20, r=20, t=60),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
