@@ -92,13 +92,19 @@ else:
         except nx.NetworkXNoPath:
             return float('inf') # Si no hay camino, el coste es infinito
 
+    # def h_sobreestimada(nodo):
+    #     if nodo == goal:
+    #         return 0
+    #     outgoing = [attrs["km"] for _, _, attrs in G.out_edges(nodo, data=True)]
+    #     # Multiplicamos por 8 para que sea pesimista (sobreestime)
+    #     return min(outgoing) * 50 if outgoing else 0
     def h_sobreestimada(nodo):
         if nodo == goal:
             return 0
-        outgoing = [attrs["km"] for _, _, attrs in G.out_edges(nodo, data=True)]
-        # Multiplicamos por 8 para que sea pesimista (sobreestime)
-        return min(outgoing) * 50 if outgoing else 0
-
+        # Tomamos la distancia máxima de todo el grafo (727) 
+        # y la multiplicamos por el FCC máximo (8)
+        # y lo multiplicamos por un factor para asegurar que h(n) > coste real
+        return 727 * 8 * 2
     
     if heur_option == "Costo uniforme (h=0)":
         h_fn = h_nula
