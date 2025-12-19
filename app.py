@@ -92,12 +92,26 @@ else:
         except nx.NetworkXNoPath:
             return float('inf') # Si no hay camino, el coste es infinito
 
+    # def h_sobreestimada(nodo):
+    #     if nodo == goal:
+    #         return 0
+    #     outgoing = [attrs["km"] for _, _, attrs in G.out_edges(nodo, data=True)]
+    #     # Multiplicamos por 8 para que sea pesimista (sobreestime)
+    #     return min(outgoing) * 50 if outgoing else 0
     def h_sobreestimada(nodo):
         if nodo == goal:
             return 0
-        outgoing = [attrs["km"] for _, _, attrs in G.out_edges(nodo, data=True)]
-        # Multiplicamos por 8 para que sea pesimista (sobreestime)
-        return min(outgoing) * 50 if outgoing else 0
+        
+        # Buscamos si el nodo tiene alguna arista "Verde" saliendo de él
+        # Si es así, le damos una penalización gigante (Sobreestimamos)
+        # Esto hará que el algoritmo evite el camino óptimo (que suele ser verde)
+        has_green = any(G[nodo][nbr].get('color') == 'Verde' for nbr in G[nodo])
+        
+        if has_green:
+            return 1000  # Valor exagerado para espantar al algoritmo
+        else:
+            return 10     # Valor pequeño para atraerlo
+            
 
     
     if heur_option == "Costo uniforme (h=0)":
