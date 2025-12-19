@@ -106,9 +106,13 @@ else:
         # Si es así, le damos una penalización gigante (Sobreestimamos)
         # Esto hará que el algoritmo evite el camino óptimo (que suele ser verde)
         has_green = any(G[nodo][nbr].get('color') == 'Verde' for nbr in G[nodo])
+        has_orange = any(G[nodo][nbr].get('color') == 'Naranja' for nbr in G[nodo])
+
         
         if has_green:
             return 1000  # Valor exagerado para espantar al algoritmo
+        elif has_orange:
+            return 100
         else:
             return 10     # Valor pequeño para atraerlo
             
