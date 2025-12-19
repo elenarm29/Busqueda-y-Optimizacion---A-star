@@ -67,7 +67,7 @@ else:
     # --------------------------
     heur_option = st.selectbox(
         "Selecciona una heurística",
-        ["Heurística propuesta: Arco más corto × costo más barato", "Costo uniforme (h=0)", "Heurística perfecta (distancia real)", "Heurística Sobreestimada"]
+        ["Heurística propuesta: Arco más corto × costo más barato", "Costo uniforme (h=0)", "Heurística perfecta (distancia real)", "Heurística sobreestimada"]
     )
 
 
@@ -106,8 +106,8 @@ else:
     elif heur_option == "Heurística perfecta (distancia real)":
         h_fn = h_perfecta
         st.caption("Heurística ideal: Conoce el coste exacto al destino. A* irá directo.")
-    elif heur_option == "Heurística Sobreestimada":
-        h_fn = h_sobrestimada
+    elif heur_option == "Heurística sobreestimada":
+        h_fn = h_sobreestimada
         st.caption("Heurística Sobreestimada (FCC=8) (No admisible)")
     else:
         h_fn = h_informada
