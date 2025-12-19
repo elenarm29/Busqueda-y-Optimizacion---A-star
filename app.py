@@ -190,7 +190,7 @@ else:
         # Esto asegura que el árbol se expanda hacia la derecha
         current_x_cursor = [0.0] 
         sep_x = 4.5  # Espacio horizontal entre nodos
-        sep_y = 4.0  # Espacio vertical entre niveles
+        sep_y = 2.0  # Espacio vertical entre niveles
 
         def layout_tree(n_id, level):
             children = sorted(parent_children.get(n_id, []))
