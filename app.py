@@ -166,118 +166,113 @@ else:
     # Árbol de expansión
     # --------------------------
     def draw_expansion_tree(solution_node, expansions):
-            # 1. Recopilar todos los nodos
-            all_nodes = []
-            for e in expansions:
-                if e not in all_nodes: all_nodes.append(e)
-                for child in e["children"]:
-                    if child not in all_nodes: all_nodes.append(child)
-    
-            # 2. Lógica de posicionamiento (La misma que evita superposiciones)
-            parent_children = defaultdict(list)
-            node_data = {}
-            for i, node in enumerate(all_nodes):
-                n_id = f"{node['state']}_{i}"
-                node_data[n_id] = node
-                if node["parent"]:
-                    for prev_id, prev_node in node_data.items():
-                        if prev_node == node["parent"]:
-                            parent_children[prev_id].append(n_id)
-                            break
-    
-            pos = {}
-            last_x_at_level = defaultdict(lambda: -1)
+        # 1. Recopilar todos los nodos generados
+        all_nodes = []
+        for e in expansions:
+            if e not in all_nodes: all_nodes.append(e)
+            for child in e["children"]:
+                if child not in all_nodes: all_nodes.append(child)
+
+        # 2. Mapeo de relaciones y datos
+        parent_children = defaultdict(list)
+        node_data = {}
+        for i, node in enumerate(all_nodes):
+            n_id = f"{node['state']}_{i}"
+            node_data[n_id] = node
+            if node["parent"]:
+                for prev_id, prev_node in node_data.items():
+                    if prev_node == node["parent"]:
+                        parent_children[prev_id].append(n_id)
+                        break
+
+        pos = {}
+        # Variable global para llevar el conteo de la X actual en las hojas
+        # Esto asegura que el árbol se expanda hacia la derecha
+        current_x_cursor = [0.0] 
+        sep_x = 4.5  # Espacio horizontal entre nodos
+        sep_y = 7.0  # Espacio vertical entre niveles
+
+        def layout_tree(n_id, level):
+            children = sorted(parent_children.get(n_id, []))
             
-            # Aumentamos la separación para que quepan los textos dentro
-            sep_x = 3.5 
-            sep_y = 6.0
-    
-            def layout_tree(n_id, level):
-                children = sorted(parent_children.get(n_id, []))
+            if not children:
+                # Si es una hoja, le asignamos la siguiente posición X disponible
+                x = current_x_cursor[0]
+                current_x_cursor[0] += sep_x
+            else:
+                # Si tiene hijos, primero posicionamos a los hijos
+                child_x_positions = []
                 for child in children:
-                    layout_tree(child, level + 1)
-                if not children:
-                    current_x = last_x_at_level[level] + sep_x
-                else:
-                    avg_x_children = sum(pos[c][0] for c in children) / len(children)
-                    current_x = max(avg_x_children, last_x_at_level[level] + sep_x)
-                pos[n_id] = (current_x, -level * sep_y)
-                last_x_at_level[level] = current_x
-    
+                    child_x_positions.append(layout_tree(child, level + 1))
+                
+                # EL TRUCO: El padre se coloca en el centro exacto de sus hijos
+                x = sum(child_x_positions) / len(child_x_positions)
+            
+            pos[n_id] = (x, -level * sep_y)
+            return x
+
+        # Ejecutar el posicionamiento desde la raíz
+        if node_data:
             root_id = list(node_data.keys())[0]
             layout_tree(root_id, 0)
-    
-            # 3. Preparar elementos de Plotly
-            edge_x, edge_y = [], []
-            for p_id, children in parent_children.items():
-                for c_id in children:
-                    edge_x += [pos[p_id][0], pos[c_id][0], None]
-                    edge_y += [pos[p_id][1], pos[c_id][1], None]
-    
-            node_x, node_y, node_labels, node_color, node_hover = [], [], [], [], []
+
+        # --- A partir de aquí, el código de dibujo de Plotly es el mismo ---
+        # 3. Preparar elementos de Plotly
+        edge_x, edge_y = [], []
+        for p_id, children in parent_children.items():
+            for c_id in children:
+                edge_x += [pos[p_id][0], pos[c_id][0], None]
+                edge_y += [pos[p_id][1], pos[c_id][1], None]
+
+        node_x, node_y, node_labels, node_color, node_hover = [], [], [], [], []
+        
+        sol_path_nodes = []
+        curr = solution_node
+        while curr:
+            sol_path_nodes.append(curr)
+            curr = curr["parent"]
+
+        for n_id, (x, y) in pos.items():
+            node = node_data[n_id]
+            node_x.append(x)
+            node_y.append(y)
+            display_text = (f"<b>{node['state']}</b> ({node['iteration']})<br>"
+                            f"g:{node['g']:.0f}<br>h:{node['h']:.0f}<br>f:{node['f']:.0f}")
+            node_labels.append(display_text)
             
-            sol_path_nodes = []
-            curr = solution_node
-            while curr:
-                sol_path_nodes.append(curr)
-                curr = curr["parent"]
-    
-            for n_id, (x, y) in pos.items():
-                node = node_data[n_id]
-                node_x.append(x)
-                node_y.append(y)
-                
-                # TEXTO DENTRO DEL NODO (g, h, f)
-                # Usamos etiquetas HTML para que se vea ordenado
-                display_text = (f"<b>{node['state']}</b> ({node['iteration']})<br>"
-                                f"g:{node['g']:.0f}<br>h:{node['h']:.0f}<br>f:{node['f']:.0f}")
-                node_labels.append(display_text)
-                
-                # Color según estado
-                if node in sol_path_nodes: color = "#90ee90" # Verde (Camino)
-                elif node in expansions: color = "#e0e0e0"   # Gris (Expandido)
-                else: color = "#ffffff"                      # Blanco (Frontera)
-                node_color.append(color)
-                
-                # Hover simplificado (opcional)
-                node_hover.append(f"Nodo {node['state']}")
-    
-            # 4. Crear Figura
-            fig = go.Figure()
-    
-            # Dibujar líneas de conexión
-            fig.add_trace(go.Scatter(x=edge_x, y=edge_y, line=dict(width=1.5, color='#555'),
-                                     hoverinfo='none', mode='lines'))
-    
-            # Dibujar los cuadrados
-            fig.add_trace(go.Scatter(
-                x=node_x, y=node_y,
-                mode='markers+text',
-                text=node_labels,
-                textposition="middle center",
-                textfont=dict(size=9, color='black'),
-                hoverinfo='text',
-                hovertext=node_hover,
-                marker=dict(
-                    symbol='square',
-                    size=55, # Tamaño grande para que quepa el texto
-                    color=node_color,
-                    line=dict(width=2, color='black')
-                )
-            ))
-    
-            fig.update_layout(
-                title="(El mapa es interactivo: arriba a la derecha puede hacer zoom y mover los nodos.)",
-                showlegend=False,
-                margin=dict(b=20, l=20, r=20, t=60),
-                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                plot_bgcolor='white',
-                height=900,
-                dragmode='pan' # Por defecto permite arrastrar el mapa
-            )
-    
-            st.plotly_chart(fig, use_container_width=True)    
+            if node in sol_path_nodes: color = "#90ee90" 
+            elif node in expansions: color = "#e0e0e0"   
+            else: color = "#ffffff"                      
+            node_color.append(color)
+            node_hover.append(f"Nodo {node['state']}")
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=edge_x, y=edge_y, line=dict(width=1.5, color='#555'),
+                                 hoverinfo='none', mode='lines'))
+
+        fig.add_trace(go.Scatter(
+            x=node_x, y=node_y,
+            mode='markers+text',
+            text=node_labels,
+            textposition="middle center",
+            textfont=dict(size=9, color='black'),
+            hoverinfo='text',
+            hovertext=node_hover,
+            marker=dict(symbol='square', size=55, color=node_color, line=dict(width=2, color='black'))
+        ))
+
+        fig.update_layout(
+            title="Estructura Jerárquica del Árbol (Hijos centrados bajo padres)",
+            showlegend=False,
+            margin=dict(b=20, l=20, r=20, t=60),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            plot_bgcolor='white',
+            height=900,
+            dragmode='pan'
+        )
+
+        st.plotly_chart(fig, use_container_width=True)  
     
 
     # --------------------------
